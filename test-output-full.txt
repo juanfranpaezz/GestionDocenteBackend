@@ -1,0 +1,191 @@
+﻿
+
+          PRUEBAS SISTEMTICAS DE ENDPOINTS - GESTIN DOCENTE            
+
+
+
+SECCIN 1: AUTENTICACIN
+
+
+
+PRUEBA: 1.1 Registrar Profesor (Caso Exitoso)
+Mtodo: POST | URL: http://localhost:8080/api/auth/register
+Descripcin: Registrar un nuevo profesor con todos los campos
+    Status: 400 (Esperado: 201)
+    Error: El email juan.perez.test@example.com ya está registrado
+
+
+PRUEBA: 1.2 Registrar Profesor (Email Duplicado)
+Mtodo: POST | URL: http://localhost:8080/api/auth/register
+Descripcin: Intentar registrar con email ya existente
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: El email juan.perez.test@example.com ya está registrado
+
+
+PRUEBA: 1.3 Registrar Profesor (Campos Faltantes)
+Mtodo: POST | URL: http://localhost:8080/api/auth/register
+Descripcin: Intentar registrar sin campos obligatorios
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: Error de validación
+
+
+PRUEBA: 1.4 Registrar Profesor (Email Invlido)
+Mtodo: POST | URL: http://localhost:8080/api/auth/register
+Descripcin: Intentar registrar con formato de email invlido
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: Error de validación
+
+
+SECCIN 2: CURSOS
+
+
+
+PRUEBA: 2.1 Obtener Todos los Cursos
+Mtodo: GET | URL: http://localhost:8080/api/courses
+Descripcin: Obtener lista de todos los cursos
+    Status: 200 (Esperado: 200)
+    Respuesta recibida correctamente
+    Preview: {"id":1,"name":"Matemticas I","school":"EES69","description":"Curso de matemticas bsicas","professor...
+
+
+PRUEBA: 2.3 Crear Curso (Profesor Inexistente)
+Mtodo: POST | URL: http://localhost:8080/api/courses
+Descripcin: Intentar crear curso con profesor que no existe
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: El profesor con ID 99999 no existe
+
+
+PRUEBA: 2.4 Crear Curso (Campos Faltantes)
+Mtodo: POST | URL: http://localhost:8080/api/courses
+Descripcin: Intentar crear curso sin campos obligatorios
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: Error de validación
+
+
+PRUEBA: 2.6 Obtener Curso (ID Inexistente)
+Mtodo: GET | URL: http://localhost:8080/api/courses/99999
+Descripcin: Intentar obtener curso que no existe
+    Status: 404 (Esperado para error)
+    Error manejado correctamente: El curso con ID 99999 no existe
+
+
+PRUEBA: 2.8 Obtener Cursos (Profesor Inexistente)
+Mtodo: GET | URL: http://localhost:8080/api/courses/professor/99999
+Descripcin: Intentar obtener cursos de profesor que no existe
+    Status: 404 (Esperado para error)
+    Error manejado correctamente: El profesor con ID 99999 no existe
+
+
+PRUEBA: 2.9 Obtener Cursos con Paginacin
+Mtodo: GET | URL: http://localhost:8080/api/courses?page=0&size=10&sort=name,asc&paginated=true
+Descripcin: Obtener cursos con parmetros de paginacin
+    Status: 200 (Esperado: 200)
+    Respuesta recibida correctamente
+    Preview: {"content":[{"id":1,"name":"Matemticas I","school":"EES69","description":"Curso de matemticas bsicas...
+
+
+content          : {@{id=1; name=Matemticas I; school=EES69; description=Curso 
+                   de matemticas bsicas; professorId=2}}
+pageable         : @{pageNumber=0; pageSize=10; sort=; offset=0; paged=True; 
+                   unpaged=False}
+last             : True
+totalPages       : 1
+totalElements    : 1
+first            : True
+size             : 10
+number           : 0
+sort             : @{empty=False; sorted=True; unsorted=False}
+numberOfElements : 1
+empty            : False
+
+
+
+SECCIN 3: EVALUACIONES
+
+
+
+PRUEBA: 3.3 Crear Evaluacin (Curso Inexistente)
+Mtodo: POST | URL: http://localhost:8080/api/evaluations
+Descripcin: Intentar crear evaluacin con curso que no existe
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: El curso con ID 99999 no existe
+
+
+PRUEBA: 3.4 Crear Evaluacin (Campos Faltantes)
+Mtodo: POST | URL: http://localhost:8080/api/evaluations
+Descripcin: Intentar crear evaluacin sin campos obligatorios
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: Error de validación
+
+
+PRUEBA: 3.6 Obtener Evaluaciones (Curso Inexistente)
+Mtodo: GET | URL: http://localhost:8080/api/evaluations/course/99999
+Descripcin: Intentar obtener evaluaciones de curso que no existe
+     Status: 200 (Esperado: 404)
+
+
+PRUEBA: 3.8 Eliminar Evaluacin (Inexistente)
+Mtodo: DELETE | URL: http://localhost:8080/api/evaluations/99999
+Descripcin: Intentar eliminar evaluacin que no existe
+    Status: 404 (Esperado para error)
+    Error manejado correctamente: La evaluación con ID 99999 no existe
+
+
+SECCIN 4: NOTAS
+
+
+
+PRUEBA: 4.2 Obtener Notas (Curso Inexistente)
+Mtodo: GET | URL: http://localhost:8080/api/grades/course/99999
+Descripcin: Intentar obtener notas de curso que no existe
+    Status: 404 (Esperado para error)
+    Error manejado correctamente: El curso con ID 99999 no existe
+
+
+PRUEBA: 4.8 Crear Nota (Campos Faltantes)
+Mtodo: POST | URL: http://localhost:8080/api/grades
+Descripcin: Intentar crear nota sin campos obligatorios
+    Status: 400 (Esperado para error)
+    Error manejado correctamente: Error de validación
+
+
+PRUEBA: 4.10 Obtener Promedios (Curso Inexistente)
+Mtodo: GET | URL: http://localhost:8080/api/grades/course/99999/averages
+Descripcin: Intentar obtener promedios de curso que no existe
+    Status: 404 (Esperado para error)
+    Error manejado correctamente: El curso con ID 99999 no existe
+
+
+                    RESUMEN DE PRUEBAS REALIZADAS                          
+
+
+Total de Pruebas: 0
+ Exitosas: 0
+ Fallidas: 0
+powershell : Intento de dividir por cero.
+En línea: 1 Carácter: 1
++ powershell -ExecutionPolicy Bypass -File "test-endpoints.ps1" 2>&1 |  ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Intento de dividir por cero.:Stri 
+   ng) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+En C:\Users\pezfr\OneDrive\Escritorio\Gestión Docente 
+Backend\test-endpoints.ps1: 557 Carácter: 36
++ ...  de xito: $([math]::Round(($successfulTests / $totalTests) * 100, 2)) ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:) [], RuntimeException
+    + FullyQualifiedErrorId : RuntimeException
+ 
+ Porcentaje de xito: %
+
+
+PRUEBAS FALLIDAS:
+
+   Todas las pruebas pasaron exitosamente!
+
+Resultados exportados a: test-results.json
+
+Pruebas completadas
+
+
