@@ -31,3 +31,8 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Test Scripts and Outputs ###
+test-endpoints.ps1
+test-output*.txt
+test-results.json

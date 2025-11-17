@@ -1,14 +1,20 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.service.impl;
 
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.LoginResponse;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.ProfessorDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.RegisterRequest;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Professor;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.ProfessorRepository;
+import com.gestion.docente.backend.Gestion.Docente.Backend.service.JwtService;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.ProfessorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.gestion.docente.backend.Gestion.Docente.Backend.security.ProfessorPrincipal;
 
 /**
  * Implementación del servicio de profesores.
@@ -23,6 +29,9 @@ public class ProfessorServiceImpl implements ProfessorService {
     
     @Autowired
     private PasswordEncoder passwordEncoder;
+    
+    @Autowired
+    private JwtService jwtService;
     
     @Override
     public ProfessorDTO register(RegisterRequest registerRequest) {
@@ -53,15 +62,47 @@ public class ProfessorServiceImpl implements ProfessorService {
     }
     
     @Override
-    public String login(String email, String password) {
-        // TODO: Implementar cuando se agregue JWT
-        throw new UnsupportedOperationException("Login aún no implementado. Se implementará con JWT.");
+    public LoginResponse login(String email, String password) {
+        // 1. Buscar profesor por email
+        Professor professor = professorRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("Credenciales inválidas"));
+        
+        // 2. Verificar contraseña
+        if (!passwordEncoder.matches(password, professor.getPassword())) {
+            throw new IllegalArgumentException("Credenciales inválidas");
+        }
+        
+        // 3. Generar token JWT
+        String token = jwtService.generateToken(professor.getId(), professor.getEmail());
+        
+        // 4. Convertir profesor a DTO
+        ProfessorDTO professorDTO = convertToDTO(professor);
+        
+        // 5. Crear respuesta con token y datos del profesor
+        LoginResponse response = new LoginResponse();
+        response.setToken(token);
+        response.setExpiresIn(jwtService.getExpirationInSeconds());
+        response.setProfessor(professorDTO);
+        
+        return response;
     }
     
     @Override
     public ProfessorDTO getCurrentProfessor() {
-        // TODO: Implementar cuando se agregue autenticación
-        throw new UnsupportedOperationException("getCurrentProfessor aún no implementado.");
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new IllegalStateException("No hay un profesor autenticado");
+        }
+        
+        Object principal = authentication.getPrincipal();
+        
+        if (principal instanceof ProfessorPrincipal) {
+            Professor professor = ((ProfessorPrincipal) principal).getProfessor();
+            return convertToDTO(professor);
+        }
+        
+        throw new IllegalStateException("El usuario autenticado no es un profesor");
     }
     
     @Override
