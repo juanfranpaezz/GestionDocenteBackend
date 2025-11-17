@@ -24,6 +24,8 @@ public class EvaluationDTO {
     @NotBlank(message = "El tipo de evaluación es obligatorio")
     private String tipo; // Ejemplo: "examen", "práctica", "tarea"
     
+    // El courseId es necesario para asociar la evaluación a un curso.
+    // El ownership del curso se valida automáticamente (el curso debe pertenecer al profesor del JWT).
     @NotNull(message = "El ID del curso es obligatorio")
     private Long courseId;
 }

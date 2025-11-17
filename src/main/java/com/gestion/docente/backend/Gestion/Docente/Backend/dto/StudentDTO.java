@@ -14,6 +14,9 @@ public class StudentDTO {
     private String cel;
     private String email;
     private String document;
+    
+    // El courseId es necesario para asociar el estudiante a un curso.
+    // El ownership del curso se valida automáticamente (el curso debe pertenecer al profesor del JWT).
     private Long courseId;
 }
 

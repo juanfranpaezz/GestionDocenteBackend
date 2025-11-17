@@ -24,9 +24,8 @@ public class CourseController {
     
     /**
      * GET /api/courses
-     * Obtiene todos los cursos.
+     * Obtiene todos los cursos del profesor autenticado (obtenido del JWT).
      * Soporta paginación con parámetros opcionales: ?page=0&size=10&sort=name,asc
-     * Por ahora retorna todos sin filtro. Más adelante se filtrará por profesor autenticado.
      */
     @GetMapping
     public ResponseEntity<?> getAllCourses(
@@ -72,8 +71,9 @@ public class CourseController {
     
     /**
      * POST /api/courses
-     * Crea un nuevo curso.
-     * Valida que el profesor exista y que todos los campos obligatorios estén presentes.
+     * Crea un nuevo curso para el profesor autenticado (obtenido del JWT).
+     * El professorId NO es necesario en el body, se obtiene automáticamente del token JWT.
+     * Valida que todos los campos obligatorios estén presentes.
      */
     @PostMapping
     public ResponseEntity<?> createCourse(@Valid @RequestBody CourseDTO courseDTO) {
@@ -87,38 +87,6 @@ public class CourseController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al crear el curso: " + e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
-        }
-    }
-    
-    /**
-     * GET /api/courses/professor/{professorId}
-     * Obtiene todos los cursos de un profesor específico.
-     * Soporta paginación con parámetros opcionales: ?page=0&size=10&sort=name,asc
-     */
-    @GetMapping("/professor/{professorId}")
-    public ResponseEntity<?> getCoursesByProfessor(
-            @PathVariable Long professorId,
-            @PageableDefault(size = 20, sort = "name") Pageable pageable,
-            @RequestParam(required = false) Boolean paginated) {
-        try {
-            // Si se solicita paginación explícitamente o si se proporcionan parámetros de paginación (page, size)
-            if (Boolean.TRUE.equals(paginated) || 
-                (pageable.getPageNumber() > 0 || pageable.getPageSize() != 20)) {
-                Page<CourseDTO> coursesPage = courseService.getCoursesByProfessor(professorId, pageable);
-                return ResponseEntity.ok(coursesPage);
-            } else {
-                // Retornar lista completa para compatibilidad hacia atrás
-                List<CourseDTO> courses = courseService.getCoursesByProfessor(professorId);
-                return ResponseEntity.ok(courses);
-            }
-        } catch (IllegalArgumentException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Error al obtener los cursos: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }

@@ -12,10 +12,6 @@ public interface CourseService {
     
     Page<CourseDTO> getAllCourses(Pageable pageable);
     
-    List<CourseDTO> getCoursesByProfessor(Long professorId);
-    
-    Page<CourseDTO> getCoursesByProfessor(Long professorId, Pageable pageable);
-    
     CourseDTO getCourseById(Long id);
     
     CourseDTO createCourse(CourseDTO courseDTO);

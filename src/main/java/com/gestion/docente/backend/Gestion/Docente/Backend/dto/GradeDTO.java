@@ -18,6 +18,8 @@ public class GradeDTO {
     @DecimalMax(value = "10.0", message = "La nota no puede ser mayor a 10")
     private Double grade;
     
+    // El courseId es necesario para asociar la nota a un curso.
+    // El ownership del curso se valida automáticamente (el curso debe pertenecer al profesor del JWT).
     @NotNull(message = "El ID del curso es obligatorio")
     private Long courseId;
     

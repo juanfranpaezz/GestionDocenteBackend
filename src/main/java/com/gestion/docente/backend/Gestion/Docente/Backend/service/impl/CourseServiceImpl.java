@@ -4,6 +4,7 @@ import com.gestion.docente.backend.Gestion.Docente.Backend.dto.CourseDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Course;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.ProfessorRepository;
+import com.gestion.docente.backend.Gestion.Docente.Backend.security.SecurityUtils;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.CourseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -30,25 +31,38 @@ public class CourseServiceImpl implements CourseService {
     
     @Override
     public CourseDTO createCourse(CourseDTO courseDTO) {
-        // 1. Validar que el profesor exista
-        if (!professorRepository.existsById(courseDTO.getProfessorId())) {
-            throw new IllegalArgumentException("El profesor con ID " + courseDTO.getProfessorId() + " no existe");
+        // 1. Obtener el profesor autenticado desde el JWT
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        
+        // 2. Si se envía professorId en el DTO, validar que coincida con el del JWT
+        // (por seguridad, para evitar que alguien intente crear cursos para otros profesores)
+        if (courseDTO.getProfessorId() != null && !currentProfessorId.equals(courseDTO.getProfessorId())) {
+            throw new IllegalArgumentException("No puede crear cursos para otros profesores");
         }
         
-        // 2. Crear nueva entidad Course
+        // 3. Validar que el profesor exista
+        if (!professorRepository.existsById(currentProfessorId)) {
+            throw new IllegalArgumentException("El profesor autenticado no existe en la base de datos");
+        }
+        
+        // 4. Asignar el professorId del JWT al DTO (ignorar el que venga en el DTO si existe)
+        courseDTO.setProfessorId(currentProfessorId);
+        
+        // 5. Crear nueva entidad Course
         Course course = convertToEntity(courseDTO);
         
-        // 3. Guardar en la base de datos
+        // 6. Guardar en la base de datos
         Course savedCourse = courseRepository.save(course);
         
-        // 4. Convertir a DTO y retornar
+        // 7. Convertir a DTO y retornar
         return convertToDTO(savedCourse);
     }
     
     @Override
     public List<CourseDTO> getAllCourses() {
-        // Obtener todos los cursos
-        List<Course> courses = courseRepository.findAll();
+        // Obtener el profesor autenticado y filtrar solo sus cursos
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        List<Course> courses = courseRepository.findByProfessorId(currentProfessorId);
         
         // Convertir a DTOs y retornar
         return courses.stream()
@@ -58,50 +72,29 @@ public class CourseServiceImpl implements CourseService {
     
     @Override
     public Page<CourseDTO> getAllCourses(Pageable pageable) {
-        // Obtener cursos paginados
-        Page<Course> coursesPage = courseRepository.findAll(pageable);
+        // Obtener el profesor autenticado y filtrar solo sus cursos
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        Page<Course> coursesPage = courseRepository.findByProfessorId(currentProfessorId, pageable);
         
         // Convertir a DTOs y retornar
         return coursesPage.map(this::convertToDTO);
     }
     
     @Override
-    public List<CourseDTO> getCoursesByProfessor(Long professorId) {
-        // 1. Validar que el profesor exista
-        if (!professorRepository.existsById(professorId)) {
-            throw new IllegalArgumentException("El profesor con ID " + professorId + " no existe");
-        }
-        
-        // 2. Buscar cursos por profesor
-        List<Course> courses = courseRepository.findByProfessorId(professorId);
-        
-        // 3. Convertir a DTOs y retornar
-        return courses.stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
-    }
-    
-    @Override
-    public Page<CourseDTO> getCoursesByProfessor(Long professorId, Pageable pageable) {
-        // 1. Validar que el profesor exista
-        if (!professorRepository.existsById(professorId)) {
-            throw new IllegalArgumentException("El profesor con ID " + professorId + " no existe");
-        }
-        
-        // 2. Buscar cursos por profesor con paginación
-        Page<Course> coursesPage = courseRepository.findByProfessorId(professorId, pageable);
-        
-        // 3. Convertir a DTOs y retornar
-        return coursesPage.map(this::convertToDTO);
-    }
-    
-    @Override
     public CourseDTO getCourseById(Long id) {
-        // 1. Buscar curso por ID
+        // 1. Obtener el profesor autenticado
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        
+        // 2. Buscar curso por ID
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + id + " no existe"));
         
-        // 2. Convertir a DTO y retornar
+        // 3. Validar ownership: el curso debe pertenecer al profesor autenticado
+        if (!course.getProfessorId().equals(currentProfessorId)) {
+            throw new IllegalArgumentException("No tiene acceso a este curso");
+        }
+        
+        // 4. Convertir a DTO y retornar
         return convertToDTO(course);
     }
     
@@ -113,12 +106,19 @@ public class CourseServiceImpl implements CourseService {
     
     @Override
     public void deleteCourse(Long id) {
-        // 1. Validar que el curso exista
-        if (!courseRepository.existsById(id)) {
-            throw new IllegalArgumentException("El curso con ID " + id + " no existe");
+        // 1. Obtener el profesor autenticado
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        
+        // 2. Buscar curso por ID
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + id + " no existe"));
+        
+        // 3. Validar ownership: el curso debe pertenecer al profesor autenticado
+        if (!course.getProfessorId().equals(currentProfessorId)) {
+            throw new IllegalArgumentException("No puede eliminar cursos de otros profesores");
         }
         
-        // 2. Eliminar curso (las relaciones se eliminan en cascada)
+        // 4. Eliminar curso (las relaciones se eliminan en cascada)
         courseRepository.deleteById(id);
     }
     
@@ -146,6 +146,22 @@ public class CourseServiceImpl implements CourseService {
         course.setDescription(dto.getDescription());
         course.setProfessorId(dto.getProfessorId());
         return course;
+    }
+    
+    /**
+     * Valida que un curso pertenezca al profesor autenticado.
+     * 
+     * @param courseId ID del curso a validar
+     * @throws IllegalArgumentException si el curso no existe o no pertenece al profesor autenticado
+     */
+    private void validateCourseOwnership(Long courseId) {
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + courseId + " no existe"));
+        
+        if (!course.getProfessorId().equals(currentProfessorId)) {
+            throw new IllegalArgumentException("No tiene acceso a este curso");
+        }
     }
 }
 

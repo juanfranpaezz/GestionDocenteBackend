@@ -20,7 +20,7 @@ public class CourseDTO {
     
     private String description;
     
-    @NotNull(message = "El ID del profesor es obligatorio")
+    // El professorId se obtiene automáticamente del JWT, no es necesario enviarlo
     private Long professorId;
 }
 

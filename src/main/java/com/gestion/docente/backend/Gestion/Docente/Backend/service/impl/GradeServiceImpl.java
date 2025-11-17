@@ -2,6 +2,7 @@ package com.gestion.docente.backend.Gestion.Docente.Backend.service.impl;
 
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.GradeDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.StudentAverageDTO;
+import com.gestion.docente.backend.Gestion.Docente.Backend.model.Course;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Grade;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Student;
@@ -9,6 +10,7 @@ import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepo
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.EvaluationRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.GradeRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.StudentRepository;
+import com.gestion.docente.backend.Gestion.Docente.Backend.security.SecurityUtils;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.GradeService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -43,10 +45,8 @@ public class GradeServiceImpl implements GradeService {
     
     @Override
     public List<GradeDTO> getGradesByCourse(Long courseId) {
-        // Validar que el curso exista
-        if (!courseRepository.existsById(courseId)) {
-            throw new IllegalArgumentException("El curso con ID " + courseId + " no existe");
-        }
+        // Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(courseId);
         
         List<Grade> grades = gradeRepository.findByCourseId(courseId);
         return grades.stream()
@@ -56,10 +56,8 @@ public class GradeServiceImpl implements GradeService {
     
     @Override
     public Page<GradeDTO> getGradesByCourse(Long courseId, Pageable pageable) {
-        // Validar que el curso exista
-        if (!courseRepository.existsById(courseId)) {
-            throw new IllegalArgumentException("El curso con ID " + courseId + " no existe");
-        }
+        // Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(courseId);
         
         Page<Grade> gradesPage = gradeRepository.findByCourseId(courseId, pageable);
         return gradesPage.map(this::convertToDTO);
@@ -67,6 +65,9 @@ public class GradeServiceImpl implements GradeService {
     
     @Override
     public GradeDTO setGrade(GradeDTO gradeDTO) {
+        // Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(gradeDTO.getCourseId());
+        
         // Validar rango de nota (0-10 inclusive)
         // Nota: El DTO ya tiene validaciones @DecimalMin(0.0) y @DecimalMax(10.0)
         // Esta validación adicional asegura que 0.0 y 10.0 sean permitidos
@@ -84,11 +85,6 @@ public class GradeServiceImpl implements GradeService {
         // Validar que la evaluación exista
         if (!evaluationRepository.existsById(gradeDTO.getEvaluationId())) {
             throw new IllegalArgumentException("La evaluación con ID " + gradeDTO.getEvaluationId() + " no existe");
-        }
-        
-        // Validar que el curso exista
-        if (!courseRepository.existsById(gradeDTO.getCourseId())) {
-            throw new IllegalArgumentException("El curso con ID " + gradeDTO.getCourseId() + " no existe");
         }
         
         // Validar consistencia: verificar que el estudiante pertenezca al curso
@@ -133,14 +129,12 @@ public class GradeServiceImpl implements GradeService {
     
     @Override
     public Double calculateAverage(Long studentId, Long courseId) {
+        // Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(courseId);
+        
         // Validar que el estudiante exista
         if (!studentRepository.existsById(studentId)) {
             throw new IllegalArgumentException("El estudiante con ID " + studentId + " no existe");
-        }
-        
-        // Validar que el curso exista
-        if (!courseRepository.existsById(courseId)) {
-            throw new IllegalArgumentException("El curso con ID " + courseId + " no existe");
         }
         
         // Obtener todas las notas del estudiante en el curso
@@ -170,6 +164,9 @@ public class GradeServiceImpl implements GradeService {
         Grade grade = gradeRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("La nota con ID " + id + " no existe"));
         
+        // Validar ownership: el curso de la nota debe pertenecer al profesor autenticado
+        validateCourseOwnership(grade.getCourseId());
+        
         // Validar rango de nota (0-10 inclusive)
         // Nota: El DTO ya tiene validaciones @DecimalMin(0.0) y @DecimalMax(10.0)
         // Esta validación adicional asegura que 0.0 y 10.0 sean permitidos
@@ -181,6 +178,11 @@ public class GradeServiceImpl implements GradeService {
         
         // Determinar el courseId final a usar (el del DTO si se actualiza, o el existente)
         Long finalCourseId = gradeDTO.getCourseId() != null ? gradeDTO.getCourseId() : grade.getCourseId();
+        
+        // Si se actualiza el courseId, validar ownership del nuevo curso
+        if (gradeDTO.getCourseId() != null && !gradeDTO.getCourseId().equals(grade.getCourseId())) {
+            validateCourseOwnership(gradeDTO.getCourseId());
+        }
         
         // Validar consistencia de studentId si se actualiza
         if (gradeDTO.getStudentId() != null) {
@@ -257,10 +259,12 @@ public class GradeServiceImpl implements GradeService {
      */
     @Override
     public List<GradeDTO> getGradesByEvaluation(Long evaluationId) {
-        // Validar que la evaluación exista
-        if (!evaluationRepository.existsById(evaluationId)) {
-            throw new IllegalArgumentException("La evaluación con ID " + evaluationId + " no existe");
-        }
+        // Buscar la evaluación para obtener su curso
+        Evaluation evaluation = evaluationRepository.findById(evaluationId)
+                .orElseThrow(() -> new IllegalArgumentException("La evaluación con ID " + evaluationId + " no existe"));
+        
+        // Validar ownership: el curso de la evaluación debe pertenecer al profesor autenticado
+        validateCourseOwnership(evaluation.getCourseId());
         
         List<Grade> grades = gradeRepository.findByEvaluationId(evaluationId);
         return grades.stream()
@@ -270,10 +274,12 @@ public class GradeServiceImpl implements GradeService {
     
     @Override
     public Page<GradeDTO> getGradesByEvaluation(Long evaluationId, Pageable pageable) {
-        // Validar que la evaluación exista
-        if (!evaluationRepository.existsById(evaluationId)) {
-            throw new IllegalArgumentException("La evaluación con ID " + evaluationId + " no existe");
-        }
+        // Buscar la evaluación para obtener su curso
+        Evaluation evaluation = evaluationRepository.findById(evaluationId)
+                .orElseThrow(() -> new IllegalArgumentException("La evaluación con ID " + evaluationId + " no existe"));
+        
+        // Validar ownership: el curso de la evaluación debe pertenecer al profesor autenticado
+        validateCourseOwnership(evaluation.getCourseId());
         
         Page<Grade> gradesPage = gradeRepository.findByEvaluationId(evaluationId, pageable);
         return gradesPage.map(this::convertToDTO);
@@ -281,10 +287,8 @@ public class GradeServiceImpl implements GradeService {
     
     @Override
     public List<StudentAverageDTO> getAveragesByCourse(Long courseId) {
-        // Validar que el curso exista
-        if (!courseRepository.existsById(courseId)) {
-            throw new IllegalArgumentException("El curso con ID " + courseId + " no existe");
-        }
+        // Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(courseId);
         
         // Obtener todos los estudiantes del curso
         List<Student> students = studentRepository.findByCourseId(courseId);
@@ -354,6 +358,22 @@ public class GradeServiceImpl implements GradeService {
         grade.setStudentId(dto.getStudentId());
         grade.setEvaluationId(dto.getEvaluationId());
         return grade;
+    }
+    
+    /**
+     * Valida que un curso pertenezca al profesor autenticado.
+     * 
+     * @param courseId ID del curso a validar
+     * @throws IllegalArgumentException si el curso no existe o no pertenece al profesor autenticado
+     */
+    private void validateCourseOwnership(Long courseId) {
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + courseId + " no existe"));
+        
+        if (!course.getProfessorId().equals(currentProfessorId)) {
+            throw new IllegalArgumentException("No tiene acceso a este curso");
+        }
     }
 }
 

@@ -13,7 +13,11 @@ public class AttendanceDTO {
     private Long id;
     private LocalDate date;
     private Boolean present;
+    
+    // El courseId es necesario para asociar la asistencia a un curso.
+    // El ownership del curso se valida automáticamente (el curso debe pertenecer al profesor del JWT).
     private Long courseId;
+    
     private Long studentId;
 }
 
