@@ -1,0 +1,522 @@
+@startuml Gestión Docente Backend - Arquitectura Completa
+
+!define PRIMARY_COLOR #4A90E2
+!define SECONDARY_COLOR #7B68EE
+!define SUCCESS_COLOR #50C878
+!define WARNING_COLOR #FFB347
+!define DANGER_COLOR #FF6B6B
+!define DTO_COLOR #E8F4F8
+!define REPO_COLOR #FFF4E6
+
+skinparam class {
+    BackgroundColor<<Entity>> PRIMARY_COLOR
+    BackgroundColor<<DTO>> DTO_COLOR
+    BackgroundColor<<Repository>> REPO_COLOR
+    BackgroundColor<<Service>> SECONDARY_COLOR
+    BackgroundColor<<Controller>> SUCCESS_COLOR
+    BorderColor #2C3E50
+    ArrowColor #2C3E50
+    FontSize 11
+    FontStyle bold
+}
+
+skinparam linetype {
+    LineColor #2C3E50
+    LineThickness 2
+}
+
+' ============================================
+' ENTIDADES DEL DOMINIO (Models)
+' ============================================
+
+class Professor <<Entity>> {
+    -id: Long
+    -name: String (nombre)
+    -lastname: String (apellido)
+    -email: String (correo electrónico)
+    -password: String (contraseña)
+    -cel: String (celular)
+    -photoUrl: String (URL de foto)
+    --
+    +getId(): Long
+    +getName(): String
+    +getLastname(): String
+    +getEmail(): String
+    +getPassword(): String
+    +getCel(): String
+    +getPhotoUrl(): String
+}
+
+class Course <<Entity>> {
+    -id: Long
+    -name: String (nombre del curso)
+    -school: String (escuela)
+    -description: String (descripción)
+    -professorId: Long (ID del profesor)
+    -professor: Professor (relación con profesor)
+    -students: List<Student> (lista de estudiantes)
+    -evaluations: List<Evaluation> (lista de evaluaciones)
+    -grades: List<Grade> (lista de notas)
+    -attendances: List<Attendance> (lista de asistencias)
+    --
+    +getId(): Long
+    +getName(): String
+    +getSchool(): String
+    +getDescription(): String
+    +getProfessorId(): Long
+}
+
+class Student <<Entity>> {
+    -id: Long
+    -firstName: String (nombre)
+    -lastName: String (apellido)
+    -cel: String (celular)
+    -email: String (correo electrónico)
+    -document: String (documento/DNI)
+    -courseId: Long (ID del curso)
+    -course: Course (relación con curso)
+    -grades: List<Grade> (lista de notas)
+    -attendances: List<Attendance> (lista de asistencias)
+    --
+    +getId(): Long
+    +getFirstName(): String
+    +getLastName(): String
+    +getCel(): String
+    +getEmail(): String
+    +getDocument(): String
+    +getCourseId(): Long
+}
+
+class Evaluation <<Entity>> {
+    -id: Long
+    -nombre: String (nombre de la evaluación)
+    -date: LocalDate (fecha)
+    -courseId: Long (ID del curso)
+    -course: Course (relación con curso)
+    -grades: List<Grade> (lista de notas)
+    --
+    +getId(): Long
+    +getNombre(): String
+    +getDate(): LocalDate
+    +getCourseId(): Long
+}
+
+class Grade <<Entity>> {
+    -id: Long
+    -grade: Double (nota, puede ser null)
+    -courseId: Long (ID del curso)
+    -studentId: Long (ID del estudiante)
+    -evaluationId: Long (ID de la evaluación)
+    -course: Course (relación con curso)
+    -student: Student (relación con estudiante)
+    -evaluation: Evaluation (relación con evaluación)
+    --
+    +getId(): Long
+    +getGrade(): Double
+    +getCourseId(): Long
+    +getStudentId(): Long
+    +getEvaluationId(): Long
+}
+
+class Attendance <<Entity>> {
+    -id: Long
+    -date: LocalDate (fecha)
+    -present: Boolean (presente/ausente)
+    -courseId: Long (ID del curso)
+    -studentId: Long (ID del estudiante)
+    -course: Course (relación con curso)
+    -student: Student (relación con estudiante)
+    --
+    +getId(): Long
+    +getDate(): LocalDate
+    +isPresent(): Boolean
+    +getCourseId(): Long
+    +getStudentId(): Long
+}
+
+' ============================================
+' DTOs (Data Transfer Objects)
+' ============================================
+
+class ProfessorDTO <<DTO>> {
+    -id: Long
+    -name: String
+    -lastname: String
+    -email: String
+    -cel: String
+    -photoUrl: String
+    --
+    Nota: No incluye password por seguridad
+}
+
+class CourseDTO <<DTO>> {
+    -id: Long
+    -name: String
+    -school: String
+    -description: String
+    -professorId: Long
+}
+
+class StudentDTO <<DTO>> {
+    -id: Long
+    -firstName: String
+    -lastName: String
+    -cel: String
+    -email: String
+    -document: String
+    -courseId: Long
+}
+
+class EvaluationDTO <<DTO>> {
+    -id: Long
+    -nombre: String
+    -date: LocalDate
+    -courseId: Long
+}
+
+class GradeDTO <<DTO>> {
+    -id: Long
+    -grade: Double
+    -courseId: Long
+    -studentId: Long
+    -evaluationId: Long
+}
+
+class AttendanceDTO <<DTO>> {
+    -id: Long
+    -date: LocalDate
+    -present: Boolean
+    -courseId: Long
+    -studentId: Long
+}
+
+class LoginRequest <<DTO>> {
+    -email: String
+    -password: String
+}
+
+class RegisterRequest <<DTO>> {
+    -name: String
+    -lastname: String
+    -email: String
+    -password: String
+    -cel: String
+    -photoUrl: String
+}
+
+' ============================================
+' REPOSITORIOS (Repositories)
+' ============================================
+
+interface ProfessorRepository <<Repository>> {
+    +findById(id: Long): Optional<Professor>
+    +findByEmail(email: String): Optional<Professor>
+    +existsByEmail(email: String): Boolean
+    +save(professor: Professor): Professor
+    +deleteById(id: Long): void
+}
+
+interface CourseRepository <<Repository>> {
+    +findById(id: Long): Optional<Course>
+    +findByProfessorId(professorId: Long): List<Course>
+    +save(course: Course): Course
+    +deleteById(id: Long): void
+}
+
+interface StudentRepository <<Repository>> {
+    +findById(id: Long): Optional<Student>
+    +findByCourseId(courseId: Long): List<Student>
+    +save(student: Student): Student
+    +deleteById(id: Long): void
+}
+
+interface EvaluationRepository <<Repository>> {
+    +findById(id: Long): Optional<Evaluation>
+    +findByCourseId(courseId: Long): List<Evaluation>
+    +save(evaluation: Evaluation): Evaluation
+    +deleteById(id: Long): void
+}
+
+interface GradeRepository <<Repository>> {
+    +findById(id: Long): Optional<Grade>
+    +findByCourseId(courseId: Long): List<Grade>
+    +findByStudentIdAndCourseId(studentId: Long, courseId: Long): List<Grade>
+    +save(grade: Grade): Grade
+}
+
+interface AttendanceRepository <<Repository>> {
+    +findById(id: Long): Optional<Attendance>
+    +findByCourseId(courseId: Long): List<Attendance>
+    +findByStudentId(studentId: Long): List<Attendance>
+    +findByStudentIdAndCourseId(studentId: Long, courseId: Long): List<Attendance>
+    +save(attendance: Attendance): Attendance
+}
+
+' ============================================
+' SERVICIOS (Services)
+' ============================================
+
+interface ProfessorService <<Service>> {
+    +register(registerRequest: RegisterRequest): ProfessorDTO
+    +login(email: String, password: String): String
+    +getCurrentProfessor(): ProfessorDTO
+    +updateProfessor(id: Long, professorDTO: ProfessorDTO): ProfessorDTO
+    +emailExists(email: String): Boolean
+}
+
+interface CourseService <<Service>> {
+    +getCoursesByProfessor(professorId: Long): List<CourseDTO>
+    +getCourseById(id: Long): CourseDTO
+    +createCourse(courseDTO: CourseDTO): CourseDTO
+    +updateCourse(id: Long, courseDTO: CourseDTO): CourseDTO
+    +deleteCourse(id: Long): void
+}
+
+interface StudentService <<Service>> {
+    +getStudentsByCourse(courseId: Long): List<StudentDTO>
+    +addStudentToCourse(studentDTO: StudentDTO): StudentDTO
+    +updateStudent(id: Long, studentDTO: StudentDTO): StudentDTO
+    +removeStudent(id: Long): void
+}
+
+interface EvaluationService <<Service>> {
+    +getEvaluationsByCourse(courseId: Long): List<EvaluationDTO>
+    +addEvaluation(evaluationDTO: EvaluationDTO): EvaluationDTO
+    +deleteEvaluation(id: Long): void
+}
+
+interface GradeService <<Service>> {
+    +getGradesByCourse(courseId: Long): List<GradeDTO>
+    +setGrade(gradeDTO: GradeDTO): GradeDTO
+    +calculateAverage(studentId: Long, courseId: Long): Double
+}
+
+interface AttendanceService <<Service>> {
+    +getAttendancesByCourse(courseId: Long): List<AttendanceDTO>
+    +getAttendancesByStudent(studentId: Long): List<AttendanceDTO>
+    +markAttendance(attendanceDTO: AttendanceDTO): AttendanceDTO
+    +updateAttendance(id: Long, attendanceDTO: AttendanceDTO): AttendanceDTO
+    +calculateAttendancePercentage(studentId: Long, courseId: Long): Double
+}
+
+interface EmailService <<Service>> {
+    +sendRegistrationEmail(email: String, name: String): void
+    +sendGradesEmail(studentEmail: String, courseName: String, grades: List<GradeDTO>): void
+}
+
+interface ExcelService <<Service>> {
+    +generateGradesExcel(courseId: Long): ByteArrayResource
+}
+
+' ============================================
+' CONTROLADORES (Controllers)
+' ============================================
+
+class AuthController <<Controller>> {
+    -professorService: ProfessorService
+    --
+    +POST /api/auth/register
+    +POST /api/auth/login
+    +POST /api/auth/logout
+    +GET /api/auth/me
+}
+
+class ProfessorController <<Controller>> {
+    -professorService: ProfessorService
+    --
+    +GET /api/professors/{id}
+    +PUT /api/professors/{id}
+    +GET /api/professors/email-exists?email={email}
+}
+
+class CourseController <<Controller>> {
+    -courseService: CourseService
+    --
+    +GET /api/courses
+    +GET /api/courses/{id}
+    +POST /api/courses
+    +PUT /api/courses/{id}
+    +DELETE /api/courses/{id}
+    +GET /api/courses/professor/{professorId}
+}
+
+class StudentController <<Controller>> {
+    -studentService: StudentService
+    --
+    +GET /api/students/course/{courseId}
+    +POST /api/students
+    +PUT /api/students/{id}
+    +DELETE /api/students/{id}
+}
+
+class EvaluationController <<Controller>> {
+    -evaluationService: EvaluationService
+    --
+    +GET /api/evaluations/course/{courseId}
+    +POST /api/evaluations
+    +DELETE /api/evaluations/{id}
+}
+
+class GradeController <<Controller>> {
+    -gradeService: GradeService
+    --
+    +GET /api/grades/course/{courseId}
+    +POST /api/grades
+    +PUT /api/grades/{id}
+    +GET /api/grades/student/{studentId}/course/{courseId}/average
+}
+
+class AttendanceController <<Controller>> {
+    -attendanceService: AttendanceService
+    --
+    +GET /api/attendances/course/{courseId}
+    +GET /api/attendances/student/{studentId}
+    +POST /api/attendances
+    +PUT /api/attendances/{id}
+    +GET /api/attendances/student/{studentId}/course/{courseId}/percentage
+}
+
+class ExcelController <<Controller>> {
+    -excelService: ExcelService
+    -gradeService: GradeService
+    --
+    +GET /api/excel/courses/{courseId}/grades
+}
+
+' ============================================
+' RELACIONES ENTRE ENTIDADES
+' ============================================
+
+Professor "1" --> "*" Course : tiene
+Course "*" --> "1" Professor : pertenece a
+
+Course "1" --> "*" Student : contiene
+Student "*" --> "1" Course : pertenece a
+
+Course "1" --> "*" Evaluation : tiene
+Evaluation "*" --> "1" Course : pertenece a
+
+Course "1" --> "*" Grade : contiene
+Grade "*" --> "1" Course : pertenece a
+
+Student "1" --> "*" Grade : tiene
+Grade "*" --> "1" Student : pertenece a
+
+Evaluation "1" --> "*" Grade : tiene
+Grade "*" --> "1" Evaluation : pertenece a
+
+Course "1" --> "*" Attendance : registra
+Attendance "*" --> "1" Course : pertenece a
+
+Student "1" --> "*" Attendance : tiene
+Attendance "*" --> "1" Student : pertenece a
+
+' ============================================
+' RELACIONES DE CONTROLADORES CON SERVICIOS
+' ============================================
+
+AuthController ..> ProfessorService : usa
+ProfessorController ..> ProfessorService : usa
+CourseController ..> CourseService : usa
+StudentController ..> StudentService : usa
+EvaluationController ..> EvaluationService : usa
+GradeController ..> GradeService : usa
+AttendanceController ..> AttendanceService : usa
+ExcelController ..> ExcelService : usa
+ExcelController ..> GradeService : usa
+
+' ============================================
+' RELACIONES DE SERVICIOS CON REPOSITORIOS
+' ============================================
+
+ProfessorService ..> ProfessorRepository : usa
+CourseService ..> CourseRepository : usa
+StudentService ..> StudentRepository : usa
+EvaluationService ..> EvaluationRepository : usa
+GradeService ..> GradeRepository : usa
+AttendanceService ..> AttendanceRepository : usa
+
+' ============================================
+' RELACIONES DE REPOSITORIOS CON ENTIDADES
+' ============================================
+
+ProfessorRepository ..|> Professor : gestiona
+CourseRepository ..|> Course : gestiona
+StudentRepository ..|> Student : gestiona
+EvaluationRepository ..|> Evaluation : gestiona
+GradeRepository ..|> Grade : gestiona
+AttendanceRepository ..|> Attendance : gestiona
+
+' ============================================
+' RELACIONES DE SERVICIOS CON DTOs
+' ============================================
+
+ProfessorService ..> ProfessorDTO : retorna
+ProfessorService ..> RegisterRequest : recibe
+CourseService ..> CourseDTO : trabaja con
+StudentService ..> StudentDTO : trabaja con
+EvaluationService ..> EvaluationDTO : trabaja con
+GradeService ..> GradeDTO : trabaja con
+AttendanceService ..> AttendanceDTO : trabaja con
+EmailService ..> GradeDTO : usa
+
+' ============================================
+' NOTAS EXPLICATIVAS
+' ============================================
+
+note right of Professor
+  Entidad principal del sistema.
+  Representa a los docentes que
+  gestionan los cursos.
+end note
+
+note right of Course
+  Un curso pertenece a un profesor
+  y contiene estudiantes, evaluaciones,
+  notas y asistencias.
+  Al eliminar un curso, se eliminan
+  en cascada todos sus datos relacionados.
+end note
+
+note right of Grade
+  La nota puede ser null si el estudiante
+  aún no fue evaluado en esa evaluación.
+  Una nota relaciona: Estudiante + Evaluación + Curso
+end note
+
+note right of Attendance
+  Permite calcular el porcentaje
+  de asistencia por estudiante
+  y por curso.
+  Registra si un estudiante estuvo
+  presente o ausente en una fecha.
+end note
+
+note bottom of DTO
+  Los DTOs se usan para transferir
+  datos entre el frontend y backend
+  sin exponer la estructura interna
+  de las entidades.
+end note
+
+note bottom of Repository
+  Los repositorios manejan el acceso
+  a la base de datos usando JPA/Hibernate.
+  Spring Data JPA implementa automáticamente
+  estos métodos.
+end note
+
+note bottom of Service
+  Los servicios contienen la lógica
+  de negocio. Convierten entidades
+  a DTOs y viceversa.
+end note
+
+note bottom of Controller
+  Los controladores reciben las
+  peticiones HTTP y delegan la
+  lógica a los servicios.
+end note
+
+@enduml
+

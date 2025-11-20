@@ -91,8 +91,50 @@ public class CourseController {
         }
     }
     
-    // TODO: Implementar cuando sea necesario
-    // PUT /api/courses/{id}
-    // DELETE /api/courses/{id}
+    /**
+     * PUT /api/courses/{id}
+     * Actualiza un curso existente.
+     * El curso debe pertenecer al profesor autenticado (obtenido del JWT).
+     * Valida que todos los campos obligatorios estén presentes.
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateCourse(
+            @PathVariable Long id,
+            @Valid @RequestBody CourseDTO courseDTO) {
+        try {
+            CourseDTO updatedCourse = courseService.updateCourse(id, courseDTO);
+            return ResponseEntity.ok(updatedCourse);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al actualizar el curso: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * DELETE /api/courses/{id}
+     * Elimina un curso existente.
+     * El curso debe pertenecer al profesor autenticado (obtenido del JWT).
+     * Las relaciones (estudiantes, evaluaciones, notas) se eliminan en cascada.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteCourse(@PathVariable Long id) {
+        try {
+            courseService.deleteCourse(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al eliminar el curso: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }
 

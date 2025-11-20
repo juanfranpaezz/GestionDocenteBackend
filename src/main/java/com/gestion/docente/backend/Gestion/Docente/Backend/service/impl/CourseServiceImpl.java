@@ -100,8 +100,34 @@ public class CourseServiceImpl implements CourseService {
     
     @Override
     public CourseDTO updateCourse(Long id, CourseDTO courseDTO) {
-        // TODO: Implementar actualización de curso
-        throw new UnsupportedOperationException("updateCourse aún no implementado.");
+        // 1. Obtener el profesor autenticado desde el JWT
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        
+        // 2. Buscar el curso existente
+        Course existingCourse = courseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + id + " no existe"));
+        
+        // 3. Validar ownership: el curso debe pertenecer al profesor autenticado
+        if (!existingCourse.getProfessorId().equals(currentProfessorId)) {
+            throw new IllegalArgumentException("No puede actualizar cursos de otros profesores");
+        }
+        
+        // 4. Validar que el professorId del DTO coincida con el del JWT (si se envía)
+        if (courseDTO.getProfessorId() != null && !currentProfessorId.equals(courseDTO.getProfessorId())) {
+            throw new IllegalArgumentException("No puede cambiar el profesor del curso");
+        }
+        
+        // 5. Actualizar los campos del curso
+        existingCourse.setName(courseDTO.getName());
+        existingCourse.setSchool(courseDTO.getSchool());
+        existingCourse.setDescription(courseDTO.getDescription());
+        // El professorId no se cambia, se mantiene el original
+        
+        // 6. Guardar los cambios
+        Course updatedCourse = courseRepository.save(existingCourse);
+        
+        // 7. Convertir a DTO y retornar
+        return convertToDTO(updatedCourse);
     }
     
     @Override
