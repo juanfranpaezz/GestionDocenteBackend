@@ -1,19 +1,53 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.controller;
 
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceDTO;
+import com.gestion.docente.backend.Gestion.Docente.Backend.service.AttendanceService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/attendances")
 public class AttendanceController {
     
-    // TODO: Implementar servicios antes de descomentar
-    // @Autowired
-    // private AttendanceService attendanceService;
+    @Autowired
+    private AttendanceService attendanceService;
     
-    // GET /api/attendances/course/{courseId}
-    // GET /api/attendances/student/{studentId}
-    // POST /api/attendances
-    // PUT /api/attendances/{id}
-    // GET /api/attendances/student/{studentId}/course/{courseId}/percentage
+    @GetMapping("/course/{courseId}")
+    public ResponseEntity<List<AttendanceDTO>> getAttendancesByCourse(@PathVariable Long courseId) {
+        List<AttendanceDTO> attendances = attendanceService.getAttendancesByCourse(courseId);
+        return ResponseEntity.ok(attendances);
+    }
+    
+    @GetMapping("/student/{studentId}")
+    public ResponseEntity<List<AttendanceDTO>> getAttendancesByStudent(@PathVariable Long studentId) {
+        List<AttendanceDTO> attendances = attendanceService.getAttendancesByStudent(studentId);
+        return ResponseEntity.ok(attendances);
+    }
+    
+    @PostMapping
+    public ResponseEntity<AttendanceDTO> markAttendance(@RequestBody AttendanceDTO attendanceDTO) {
+        AttendanceDTO created = attendanceService.markAttendance(attendanceDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<AttendanceDTO> updateAttendance(
+            @PathVariable Long id,
+            @RequestBody AttendanceDTO attendanceDTO) {
+        AttendanceDTO updated = attendanceService.updateAttendance(id, attendanceDTO);
+        return ResponseEntity.ok(updated);
+    }
+    
+    @GetMapping("/student/{studentId}/course/{courseId}/percentage")
+    public ResponseEntity<Double> getAttendancePercentage(
+            @PathVariable Long studentId,
+            @PathVariable Long courseId) {
+        Double percentage = attendanceService.calculateAttendancePercentage(studentId, courseId);
+        return ResponseEntity.ok(percentage);
+    }
 }
 

@@ -45,15 +45,36 @@ public class JwtService {
      * 
      * @param professorId ID del profesor
      * @param email Email del profesor
+     * @param role Rol del profesor (PROFESSOR o ADMIN)
      * @return Token JWT como string
      */
-    public String generateToken(Long professorId, String email) {
+    public String generateToken(Long professorId, String email, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("professorId", professorId);
         claims.put("email", email);
-        claims.put("role", "PROFESSOR"); // Preparado para futuro uso de roles
+        claims.put("role", role != null ? role : "PROFESSOR");
         
         return createToken(claims, email);
+    }
+    
+    /**
+     * Genera un token JWT para un profesor (método legacy, usa PROFESSOR por defecto).
+     * 
+     * @param professorId ID del profesor
+     * @param email Email del profesor
+     * @return Token JWT como string
+     */
+    public String generateToken(Long professorId, String email) {
+        return generateToken(professorId, email, "PROFESSOR");
+    }
+    
+    /**
+     * Extrae el rol del token.
+     */
+    public String extractRole(String token) {
+        Claims claims = extractAllClaims(token);
+        Object roleObj = claims.get("role");
+        return roleObj != null ? roleObj.toString() : "PROFESSOR";
     }
     
     /**

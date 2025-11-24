@@ -1,18 +1,24 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.controller;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.LoginRequest;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.LoginResponse;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.ProfessorDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.RegisterRequest;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.ProfessorService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -60,8 +66,11 @@ public class AuthController {
             error.put("error", e.getMessage());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
         } catch (Exception e) {
+            // Log del error para debugging
+            e.printStackTrace();
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al iniciar sesión: " + e.getMessage());
+            error.put("details", e.getClass().getSimpleName());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }

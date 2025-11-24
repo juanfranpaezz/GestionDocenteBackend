@@ -98,11 +98,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
      * Crea un objeto Authentication para el profesor autenticado.
      */
     private Authentication createAuthentication(Professor professor, HttpServletRequest request) {
-        // Crear authorities (roles) - por ahora solo PROFESSOR
-        var authorities = Collections.singletonList(new SimpleGrantedAuthority("ROLE_PROFESSOR"));
-        
         // Crear el principal (objeto que representa al usuario autenticado)
         ProfessorPrincipal principal = new ProfessorPrincipal(professor);
+        
+        // Crear authorities (roles) basado en el rol del profesor
+        // El ProfessorPrincipal ya maneja esto en getAuthorities(), pero lo establecemos aquí también
+        var authorities = principal.getAuthorities();
         
         UsernamePasswordAuthenticationToken authentication = 
                 new UsernamePasswordAuthenticationToken(principal, null, authorities);

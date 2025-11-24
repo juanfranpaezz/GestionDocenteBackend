@@ -1,6 +1,5 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.dto;
 
-import com.gestion.docente.backend.Gestion.Docente.Backend.model.Role;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,13 +7,10 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ProfessorDTO {
+public class ClassDTO {
     private Long id;
     private String name;
-    private String lastname;
-    private String email;
-    private String cel;
-    private String photoUrl;
-    private Role role;
+    private String description;
+    private Long professorId;
 }
 

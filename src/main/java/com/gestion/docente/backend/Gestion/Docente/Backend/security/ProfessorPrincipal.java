@@ -24,7 +24,10 @@ public class ProfessorPrincipal implements UserDetails {
     
     @Override
     public Collection<? extends org.springframework.security.core.GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(() -> "ROLE_PROFESSOR");
+        String roleName = professor.getRole() != null 
+            ? professor.getRole().name() 
+            : "PROFESSOR";
+        return Collections.singletonList(() -> "ROLE_" + roleName);
     }
     
     @Override

@@ -1,5 +1,14 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.service.impl;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.EvaluationDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Course;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation;
@@ -7,14 +16,6 @@ import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepo
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.EvaluationRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.security.SecurityUtils;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.EvaluationService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -50,6 +51,16 @@ public class EvaluationServiceImpl implements EvaluationService {
     public EvaluationDTO addEvaluation(EvaluationDTO evaluationDTO) {
         // Validar ownership: el curso debe pertenecer al profesor autenticado
         validateCourseOwnership(evaluationDTO.getCourseId());
+        
+        // Validar que no exista una evaluación con el mismo nombre y fecha en el mismo curso
+        if (evaluationRepository.existsByCourseIdAndNombreAndDate(
+                evaluationDTO.getCourseId(), 
+                evaluationDTO.getNombre(), 
+                evaluationDTO.getDate())) {
+            throw new IllegalArgumentException(
+                "Ya existe una evaluación con el nombre '" + evaluationDTO.getNombre() + 
+                "' y fecha '" + evaluationDTO.getDate() + "' en este curso");
+        }
         
         // Convertir DTO a entidad
         Evaluation evaluation = convertToEntity(evaluationDTO);

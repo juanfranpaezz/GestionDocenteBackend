@@ -4,6 +4,8 @@ import com.gestion.docente.backend.Gestion.Docente.Backend.dto.LoginResponse;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.ProfessorDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.RegisterRequest;
 
+import java.util.List;
+
 public interface ProfessorService {
     
     ProfessorDTO register(RegisterRequest registerRequest);
@@ -15,5 +17,13 @@ public interface ProfessorService {
     ProfessorDTO updateProfessor(Long id, ProfessorDTO professorDTO);
     
     boolean emailExists(String email);
+    
+    List<ProfessorDTO> getAllProfessors();
+    
+    ProfessorDTO getProfessorById(Long id);
+    
+    List<ProfessorDTO> searchProfessorsByLastname(String lastname);
+    
+    void deleteProfessor(Long id);
 }
 

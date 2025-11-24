@@ -6,11 +6,11 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "professors")
+@Table(name = "classes")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class Professor {
+public class Class {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,21 +19,13 @@ public class Professor {
     @Column(nullable = false)
     private String name;
     
-    @Column(nullable = false)
-    private String lastname;
-    
-    @Column(nullable = false, unique = true)
-    private String email;
+    private String description;
     
     @Column(nullable = false)
-    private String password;
+    private Long professorId;
     
-    private String cel;
-    
-    private String photoUrl;
-    
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Role role = Role.PROFESSOR; // Por defecto PROFESSOR
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "professorId", insertable = false, updatable = false)
+    private Professor professor;
 }
 
