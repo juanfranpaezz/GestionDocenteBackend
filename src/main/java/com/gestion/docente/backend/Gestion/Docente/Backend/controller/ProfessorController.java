@@ -31,14 +31,30 @@ public class ProfessorController {
     }
     
     @GetMapping("/search")
-    public ResponseEntity<?> searchProfessorsByLastname(
-            @RequestParam String lastname) {
+    public ResponseEntity<?> searchProfessors(
+            @RequestParam(required = false) String lastname,
+            @RequestParam(required = false) String query) {
         try {
-            List<ProfessorDTO> professors = professorService.searchProfessorsByLastname(lastname);
+            List<ProfessorDTO> professors;
+            // Si se proporciona 'query', usar búsqueda general (nombre, apellido, email)
+            if (query != null && !query.trim().isEmpty()) {
+                professors = professorService.searchProfessors(query.trim());
+            } else if (lastname != null && !lastname.trim().isEmpty()) {
+                // Mantener compatibilidad con búsqueda por apellido
+                professors = professorService.searchProfessorsByLastname(lastname.trim());
+            } else {
+                // Si no hay parámetros, retornar todos los profesores
+                professors = professorService.getAllProfessors();
+            }
             return ResponseEntity.ok(professors);
         } catch (IllegalStateException e) {
+            // Error de autorización (no es admin o no está autenticado)
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());
+            // Si el mensaje indica que no hay usuario autenticado, retornar 401
+            if (e.getMessage() != null && e.getMessage().contains("No hay un usuario autenticado")) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(error);
+            }
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();

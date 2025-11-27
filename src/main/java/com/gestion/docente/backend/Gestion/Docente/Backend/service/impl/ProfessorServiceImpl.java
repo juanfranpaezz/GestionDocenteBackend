@@ -209,6 +209,32 @@ public class ProfessorServiceImpl implements ProfessorService {
     }
     
     @Override
+    public List<ProfessorDTO> searchProfessors(String query) {
+        System.out.println("=== searchProfessors called ===");
+        System.out.println("Query: " + query);
+        
+        // Solo administradores pueden buscar profesores
+        try {
+            validateAdminAccess();
+            System.out.println("Admin access validated successfully");
+        } catch (IllegalStateException e) {
+            System.err.println("Admin access validation FAILED: " + e.getMessage());
+            throw e;
+        }
+        
+        // Buscar por nombre, apellido o email
+        List<Professor> professors = professorRepository
+                .findByNameContainingIgnoreCaseOrLastnameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+                    query, query, query);
+        System.out.println("Found " + professors.size() + " professors");
+        System.out.println("===============================");
+        
+        return professors.stream()
+                .map(this::convertToDTO)
+                .collect(java.util.stream.Collectors.toList());
+    }
+    
+    @Override
     public void deleteProfessor(Long id) {
         // Solo administradores pueden eliminar profesores
         validateAdminAccess();
@@ -235,12 +261,64 @@ public class ProfessorServiceImpl implements ProfessorService {
             throw new IllegalStateException("No hay un usuario autenticado");
         }
         
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+        // Obtener el principal para verificar el rol directamente
+        Object principal = authentication.getPrincipal();
+        boolean isAdmin = false;
+        
+        // Verificar directamente desde el ProfessorPrincipal (más confiable)
+        if (principal instanceof ProfessorPrincipal) {
+            ProfessorPrincipal professorPrincipal = (ProfessorPrincipal) principal;
+            Professor professor = professorPrincipal.getProfessor();
+            
+            System.out.println("=== validateAdminAccess DEBUG ===");
+            System.out.println("Professor ID: " + professor.getId());
+            System.out.println("Professor Email: " + professor.getEmail());
+            System.out.println("Professor Role object: " + professor.getRole());
+            System.out.println("Professor Role name: " + (professor.getRole() != null ? professor.getRole().name() : "null"));
+            System.out.println("Role equals ADMIN: " + (professor.getRole() != null && professor.getRole().name().equals("ADMIN")));
+            System.out.println("Role == Role.ADMIN: " + (professor.getRole() == com.gestion.docente.backend.Gestion.Docente.Backend.model.Role.ADMIN));
+            
+            // Verificar si el profesor tiene rol ADMIN (múltiples formas)
+            if (professor.getRole() != null) {
+                if (professor.getRole().name().equals("ADMIN") || 
+                    professor.getRole() == com.gestion.docente.backend.Gestion.Docente.Backend.model.Role.ADMIN) {
+                    isAdmin = true;
+                    System.out.println("✓ Admin access granted via ProfessorPrincipal");
+                }
+            }
+            System.out.println("isAdmin after principal check: " + isAdmin);
+        }
+        
+        // Si no se encontró por el principal, verificar las autoridades como fallback
+        if (!isAdmin) {
+            isAdmin = authentication.getAuthorities().stream()
+                    .anyMatch(authority -> {
+                        String authorityStr = authority.getAuthority();
+                        // Aceptar tanto "ROLE_ADMIN" como "ADMIN"
+                        return authorityStr.equals("ROLE_ADMIN") || authorityStr.equals("ADMIN");
+                    });
+        }
         
         if (!isAdmin) {
+            // Log detallado para debugging
+            System.err.println("=== ❌ ADMIN ACCESS DENIED ===");
+            System.err.println("Principal type: " + (principal != null ? principal.getClass().getName() : "null"));
+            System.err.println("Is authenticated: " + authentication.isAuthenticated());
+            System.err.println("Authorities: " + authentication.getAuthorities());
+            if (principal instanceof ProfessorPrincipal) {
+                ProfessorPrincipal pp = (ProfessorPrincipal) principal;
+                Professor prof = pp.getProfessor();
+                System.err.println("Professor ID: " + prof.getId());
+                System.err.println("Professor Email: " + prof.getEmail());
+                System.err.println("Professor Role object: " + prof.getRole());
+                System.err.println("Professor Role name: " + (prof.getRole() != null ? prof.getRole().name() : "null"));
+                System.err.println("Is Role.ADMIN? " + (prof.getRole() == com.gestion.docente.backend.Gestion.Docente.Backend.model.Role.ADMIN));
+            }
+            System.err.println("=================================");
             throw new IllegalStateException("Solo los administradores pueden realizar esta acción");
         }
+        
+        System.out.println("✓ Admin access granted - user is ADMIN");
     }
     
     /**

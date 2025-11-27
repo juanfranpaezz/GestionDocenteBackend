@@ -161,8 +161,14 @@ public class JwtService {
     public Boolean validateToken(String token) {
         try {
             extractAllClaims(token); // Esto valida la firma
-            return !isTokenExpired(token);
+            boolean notExpired = !isTokenExpired(token);
+            System.out.println("✓ Token validation: signature valid, expired: " + isTokenExpired(token));
+            return notExpired;
         } catch (Exception e) {
+            System.err.println("❌ Token validation FAILED:");
+            System.err.println("Error type: " + e.getClass().getName());
+            System.err.println("Error message: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }

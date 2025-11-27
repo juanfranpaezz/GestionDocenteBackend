@@ -15,5 +15,9 @@ public interface ProfessorRepository extends JpaRepository<Professor, Long> {
     boolean existsByEmail(String email);
     
     List<Professor> findByLastnameContainingIgnoreCase(String lastname);
+    
+    // Búsqueda por nombre, apellido o email
+    List<Professor> findByNameContainingIgnoreCaseOrLastnameContainingIgnoreCaseOrEmailContainingIgnoreCase(
+        String name, String lastname, String email);
 }
 

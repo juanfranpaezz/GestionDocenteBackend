@@ -24,6 +24,8 @@ public interface ProfessorService {
     
     List<ProfessorDTO> searchProfessorsByLastname(String lastname);
     
+    List<ProfessorDTO> searchProfessors(String query);
+    
     void deleteProfessor(Long id);
 }
 

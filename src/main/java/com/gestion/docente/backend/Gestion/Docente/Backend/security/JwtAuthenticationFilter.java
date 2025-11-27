@@ -53,7 +53,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             String token = extractTokenFromRequest(request);
             
+            System.out.println("=== JWT Filter - Request: " + request.getRequestURI() + " ===");
+            System.out.println("Token extracted: " + (token != null ? "YES (length: " + token.length() + ")" : "NO"));
+            System.out.println("Authorization header: " + request.getHeader("Authorization"));
+            
             if (token != null && jwtService.validateToken(token)) {
+                System.out.println("Token is valid");
                 // Extraer información del token
                 Long professorId = jwtService.extractProfessorId(token);
                 String email = jwtService.extractEmail(token);
@@ -63,16 +68,40 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         .orElse(null);
                 
                 if (professor != null && professor.getEmail().equals(email)) {
+                    // Log para debugging
+                    System.out.println("=== JWT Filter DEBUG ===");
+                    System.out.println("Professor ID: " + professor.getId());
+                    System.out.println("Professor Email: " + professor.getEmail());
+                    System.out.println("Professor Role: " + (professor.getRole() != null ? professor.getRole().name() : "null"));
+                    
                     // Crear autenticación y establecerla en el SecurityContext
                     Authentication authentication = createAuthentication(professor, request);
+                    System.out.println("Authentication Authorities: " + authentication.getAuthorities());
+                    System.out.println("Authentication set in SecurityContext: YES");
+                    System.out.println("=========================");
+                    
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    System.err.println("❌ JWT Filter - Professor not found or email mismatch");
+                    System.err.println("Professor from DB: " + (professor != null ? professor.getEmail() : "null"));
+                    System.err.println("Email from token: " + email);
+                }
+            } else {
+                if (token == null) {
+                    System.err.println("❌ JWT Filter - No token in request");
+                } else {
+                    System.err.println("❌ JWT Filter - Token is invalid or expired");
                 }
             }
         } catch (Exception e) {
-            // Si hay algún error al procesar el token, simplemente continuamos
+            // Si hay algún error al procesar el token, loguear el error completo
+            System.err.println("❌❌❌ EXCEPTION en JWT Filter ❌❌❌");
+            System.err.println("Error type: " + e.getClass().getName());
+            System.err.println("Error message: " + e.getMessage());
+            e.printStackTrace();
+            System.err.println("=====================================");
             // El SecurityContext quedará sin autenticación y Spring Security
             // rechazará el request si requiere autenticación
-            logger.debug("Error al procesar token JWT: " + e.getMessage());
         }
         
         filterChain.doFilter(request, response);
