@@ -20,6 +20,8 @@ import org.springframework.web.cors.CorsConfigurationSource;
  * Endpoints públicos:
  * - POST /api/auth/register
  * - POST /api/auth/login
+ * - POST /api/auth/verify-email
+ * - GET /api/auth/verify-email
  * 
  * Todos los demás endpoints requieren autenticación JWT.
  */
@@ -63,7 +65,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                 // Endpoints públicos
-                .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/verify-email").permitAll()
                 // Todos los demás endpoints requieren autenticación (incluyendo /api/auth/logout y /api/auth/me)
                 .anyRequest().authenticated()
             )

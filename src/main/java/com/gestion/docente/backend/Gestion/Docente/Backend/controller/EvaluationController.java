@@ -103,5 +103,27 @@ public class EvaluationController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+    
+    /**
+     * POST /api/evaluations/{id}/send-grades
+     * Envía las notas de una evaluación por email a todos los alumnos
+     */
+    @PostMapping("/{id}/send-grades")
+    public ResponseEntity<?> sendGradesByEmail(@PathVariable Long id) {
+        try {
+            evaluationService.sendGradesByEmail(id);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Notas enviadas por email exitosamente");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al enviar las notas por email: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }
 

@@ -112,5 +112,77 @@ public class AuthController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+    
+    /**
+     * POST /api/auth/verify-email
+     * Verifica el email del usuario usando el token de verificación.
+     * Acepta el token en el body (JSON) o como query parameter.
+     * No requiere autenticación.
+     */
+    @PostMapping("/verify-email")
+    public ResponseEntity<?> verifyEmail(
+            @RequestBody(required = false) Map<String, String> request,
+            @org.springframework.web.bind.annotation.RequestParam(required = false) String token) {
+        try {
+            // Obtener token del body o del query parameter
+            String verificationToken = null;
+            if (request != null && request.containsKey("token")) {
+                verificationToken = request.get("token");
+            } else if (token != null && !token.trim().isEmpty()) {
+                verificationToken = token;
+            }
+            
+            if (verificationToken == null || verificationToken.trim().isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "El token de verificación es requerido");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            boolean verified = professorService.verifyEmail(verificationToken);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Email verificado exitosamente");
+            response.put("verified", verified);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al verificar el email: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * GET /api/auth/verify-email
+     * Verifica el email del usuario usando el token de verificación (desde query parameter).
+     * Útil para enlaces directos desde el email.
+     * No requiere autenticación.
+     */
+    @GetMapping("/verify-email")
+    public ResponseEntity<?> verifyEmailGet(@org.springframework.web.bind.annotation.RequestParam String token) {
+        try {
+            if (token == null || token.trim().isEmpty()) {
+                Map<String, String> error = new HashMap<>();
+                error.put("error", "El token de verificación es requerido");
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+            }
+            
+            boolean verified = professorService.verifyEmail(token);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Email verificado exitosamente");
+            response.put("verified", verified);
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al verificar el email: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }
 

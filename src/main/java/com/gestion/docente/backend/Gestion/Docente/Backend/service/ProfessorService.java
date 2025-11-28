@@ -27,5 +27,7 @@ public interface ProfessorService {
     List<ProfessorDTO> searchProfessors(String query);
     
     void deleteProfessor(Long id);
+    
+    boolean verifyEmail(String token);
 }
 

@@ -1,5 +1,7 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.model;
 
+import java.time.LocalDateTime;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -35,5 +37,14 @@ public class Professor {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.PROFESSOR; // Por defecto PROFESSOR
+    
+    // Campos para verificación de email
+    @Column(nullable = false)
+    private Boolean emailVerified = false;
+    
+    @Column(length = 100)
+    private String verificationToken;
+    
+    private LocalDateTime tokenExpiryDate;
 }
 

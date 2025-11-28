@@ -9,5 +9,9 @@ public interface EmailService {
     void sendRegistrationEmail(String email, String name);
     
     void sendGradesEmail(String studentEmail, String courseName, List<GradeDTO> grades);
+    
+    void sendVerificationEmail(String email, String name, String verificationToken);
+    
+    void sendEvaluationGradeEmail(String studentEmail, String studentName, String evaluationName, String courseName, Double grade);
 }
 

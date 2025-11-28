@@ -19,5 +19,8 @@ public interface ProfessorRepository extends JpaRepository<Professor, Long> {
     // Búsqueda por nombre, apellido o email
     List<Professor> findByNameContainingIgnoreCaseOrLastnameContainingIgnoreCaseOrEmailContainingIgnoreCase(
         String name, String lastname, String email);
+    
+    // Búsqueda por token de verificación
+    Optional<Professor> findByVerificationToken(String token);
 }
 

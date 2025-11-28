@@ -15,5 +15,7 @@ public interface EvaluationService {
     EvaluationDTO addEvaluation(EvaluationDTO evaluationDTO);
     
     void deleteEvaluation(Long id);
+    
+    void sendGradesByEmail(Long evaluationId);
 }
 

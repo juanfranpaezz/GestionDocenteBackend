@@ -10,12 +10,17 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.EvaluationDTO;
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.GradeDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Course;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation;
+import com.gestion.docente.backend.Gestion.Docente.Backend.model.Student;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.EvaluationRepository;
+import com.gestion.docente.backend.Gestion.Docente.Backend.repository.StudentRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.security.SecurityUtils;
+import com.gestion.docente.backend.Gestion.Docente.Backend.service.EmailService;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.EvaluationService;
+import com.gestion.docente.backend.Gestion.Docente.Backend.service.GradeService;
 
 @Service
 @Transactional
@@ -26,6 +31,15 @@ public class EvaluationServiceImpl implements EvaluationService {
     
     @Autowired
     private CourseRepository courseRepository;
+    
+    @Autowired
+    private GradeService gradeService;
+    
+    @Autowired
+    private StudentRepository studentRepository;
+    
+    @Autowired
+    private EmailService emailService;
     
     @Override
     public List<EvaluationDTO> getEvaluationsByCourse(Long courseId) {
@@ -83,6 +97,60 @@ public class EvaluationServiceImpl implements EvaluationService {
         
         // Eliminar la evaluación
         evaluationRepository.deleteById(id);
+    }
+    
+    @Override
+    public void sendGradesByEmail(Long evaluationId) {
+        // 1. Buscar la evaluación
+        Evaluation evaluation = evaluationRepository.findById(evaluationId)
+                .orElseThrow(() -> new IllegalArgumentException("La evaluación con ID " + evaluationId + " no existe"));
+        
+        // 2. Validar ownership: el curso de la evaluación debe pertenecer al profesor autenticado
+        validateCourseOwnership(evaluation.getCourseId());
+        
+        // 3. Obtener el curso para el nombre
+        Course course = courseRepository.findById(evaluation.getCourseId())
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + evaluation.getCourseId() + " no existe"));
+        
+        // 4. Obtener todas las notas de esta evaluación
+        List<GradeDTO> grades = gradeService.getGradesByEvaluation(evaluationId);
+        
+        // 5. Obtener todos los estudiantes del curso
+        List<Student> students = studentRepository.findByCourseId(evaluation.getCourseId());
+        
+        // 6. Crear un mapa de studentId -> Student para acceso rápido
+        java.util.Map<Long, Student> studentMap = students.stream()
+                .collect(Collectors.toMap(Student::getId, student -> student));
+        
+        // 7. Enviar email a cada estudiante con su nota
+        int emailsSent = 0;
+        int emailsFailed = 0;
+        
+        for (GradeDTO grade : grades) {
+            Student student = studentMap.get(grade.getStudentId());
+            if (student != null && student.getEmail() != null && !student.getEmail().trim().isEmpty()) {
+                try {
+                    String studentName = student.getFirstName() + 
+                            (student.getLastName() != null ? " " + student.getLastName() : "");
+                    emailService.sendEvaluationGradeEmail(
+                            student.getEmail(),
+                            studentName,
+                            evaluation.getNombre(),
+                            course.getName(),
+                            grade.getGrade()
+                    );
+                    emailsSent++;
+                } catch (Exception e) {
+                    System.err.println("Error al enviar email a " + student.getEmail() + ": " + e.getMessage());
+                    emailsFailed++;
+                }
+            } else {
+                System.err.println("Estudiante con ID " + grade.getStudentId() + " no tiene email configurado");
+                emailsFailed++;
+            }
+        }
+        
+        System.out.println("Envío de notas completado. Enviados: " + emailsSent + ", Fallidos: " + emailsFailed);
     }
     
     // Métodos auxiliares para conversión

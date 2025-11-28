@@ -1,5 +1,8 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.service.impl;
 
+import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +20,7 @@ import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepo
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.ProfessorRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.security.ProfessorPrincipal;
 import com.gestion.docente.backend.Gestion.Docente.Backend.security.SecurityUtils;
+import com.gestion.docente.backend.Gestion.Docente.Backend.service.EmailService;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.JwtService;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.ProfessorService;
 
@@ -40,6 +44,12 @@ public class ProfessorServiceImpl implements ProfessorService {
     @Autowired
     private JwtService jwtService;
     
+    @Autowired
+    private EmailService emailService;
+    
+    private static final SecureRandom secureRandom = new SecureRandom();
+    private static final Base64.Encoder base64Encoder = Base64.getUrlEncoder();
+    
     @Override
     public ProfessorDTO register(RegisterRequest registerRequest) {
         // 1. Validar que el email no exista
@@ -61,37 +71,88 @@ public class ProfessorServiceImpl implements ProfessorService {
         professor.setCel(registerRequest.getCel());
         professor.setPhotoUrl(registerRequest.getPhotoUrl());
         
-        // 5. Guardar en la base de datos
+        // 5. Generar token de verificación
+        String verificationToken = generateVerificationToken();
+        professor.setVerificationToken(verificationToken);
+        professor.setTokenExpiryDate(LocalDateTime.now().plusHours(24)); // Expira en 24 horas
+        professor.setEmailVerified(false); // Email no verificado inicialmente
+        
+        // 6. Guardar en la base de datos
         Professor savedProfessor = professorRepository.save(professor);
         
-        // 6. Convertir a DTO (sin password) y retornar
+        // 7. Enviar email de verificación
+        try {
+            emailService.sendVerificationEmail(
+                savedProfessor.getEmail(),
+                savedProfessor.getName(),
+                verificationToken
+            );
+        } catch (Exception e) {
+            System.err.println("Error al enviar email de verificación: " + e.getMessage());
+            // No lanzar excepción para no interrumpir el registro
+            // El usuario puede solicitar reenvío del token más tarde
+        }
+        
+        // 8. Convertir a DTO (sin password) y retornar
         return convertToDTO(savedProfessor);
+    }
+    
+    /**
+     * Genera un token único de verificación
+     */
+    private String generateVerificationToken() {
+        byte[] randomBytes = new byte[32];
+        secureRandom.nextBytes(randomBytes);
+        return base64Encoder.encodeToString(randomBytes);
     }
     
     @Override
     public LoginResponse login(String email, String password) {
         try {
+            System.out.println("=== LOGIN ATTEMPT ===");
+            System.out.println("Email: " + email);
+            
             // 1. Buscar profesor por email
             Professor professor = professorRepository.findByEmail(email)
-                    .orElseThrow(() -> new IllegalArgumentException("Credenciales inválidas"));
+                    .orElseThrow(() -> {
+                        System.out.println("❌ Profesor no encontrado con email: " + email);
+                        return new IllegalArgumentException("Credenciales inválidas");
+                    });
+            
+            System.out.println("✓ Profesor encontrado: ID=" + professor.getId() + ", Email=" + professor.getEmail());
+            System.out.println("Email verificado: " + professor.getEmailVerified());
             
             // 2. Verificar contraseña
             if (!passwordEncoder.matches(password, professor.getPassword())) {
+                System.out.println("❌ Contraseña incorrecta");
                 throw new IllegalArgumentException("Credenciales inválidas");
             }
             
-            // 3. Generar token JWT con el rol del profesor
+            System.out.println("✓ Contraseña correcta");
+            
+            // 3. Verificar que el email esté verificado
+            if (professor.getEmailVerified() == null || !professor.getEmailVerified()) {
+                System.out.println("❌ Email no verificado. EmailVerified=" + professor.getEmailVerified());
+                throw new IllegalArgumentException("Por favor, verifica tu email antes de iniciar sesión. Revisa tu bandeja de entrada.");
+            }
+            
+            System.out.println("✓ Email verificado");
+            
+            // 4. Generar token JWT con el rol del profesor
             String role = professor.getRole() != null ? professor.getRole().name() : "PROFESSOR";
             String token = jwtService.generateToken(professor.getId(), professor.getEmail(), role);
             
-            // 4. Convertir profesor a DTO
+            // 5. Convertir profesor a DTO
             ProfessorDTO professorDTO = convertToDTO(professor);
             
-            // 5. Crear respuesta con token y datos del profesor
+            // 6. Crear respuesta con token y datos del profesor
             LoginResponse response = new LoginResponse();
             response.setToken(token);
             response.setExpiresIn(jwtService.getExpirationInSeconds());
             response.setProfessor(professorDTO);
+            
+            System.out.println("✅ Login exitoso para: " + email);
+            System.out.println("===============================");
             
             return response;
         } catch (IllegalArgumentException e) {
@@ -319,6 +380,34 @@ public class ProfessorServiceImpl implements ProfessorService {
         }
         
         System.out.println("✓ Admin access granted - user is ADMIN");
+    }
+    
+    @Override
+    public boolean verifyEmail(String token) {
+        // 1. Buscar profesor por token
+        Professor professor = professorRepository.findByVerificationToken(token)
+                .orElseThrow(() -> new IllegalArgumentException("Token de verificación inválido"));
+        
+        // 2. Verificar que el token no haya expirado
+        if (professor.getTokenExpiryDate() == null || 
+            professor.getTokenExpiryDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("El token de verificación ha expirado. Por favor, solicita uno nuevo.");
+        }
+        
+        // 3. Verificar que el email no esté ya verificado
+        if (professor.getEmailVerified() != null && professor.getEmailVerified()) {
+            throw new IllegalArgumentException("El email ya ha sido verificado anteriormente");
+        }
+        
+        // 4. Marcar email como verificado y limpiar token
+        professor.setEmailVerified(true);
+        professor.setVerificationToken(null);
+        professor.setTokenExpiryDate(null);
+        
+        // 5. Guardar cambios
+        professorRepository.save(professor);
+        
+        return true;
     }
     
     /**
