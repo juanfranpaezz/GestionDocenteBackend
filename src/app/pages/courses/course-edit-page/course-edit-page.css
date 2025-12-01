@@ -1,0 +1,168 @@
+.container {
+  max-width: 600px;
+  margin: 20px auto;
+  padding: 20px;
+}
+
+h2 {
+  margin-bottom: 24px;
+  color: var(--text-primary);
+  font-size: 24px;
+  transition: color 0.3s ease;
+}
+
+.course-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-field label {
+  font-weight: 500;
+  color: #333;
+  font-size: 14px;
+}
+
+.required {
+  color: #c62828;
+  margin-left: 2px;
+}
+
+.form-field input,
+.form-field textarea {
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+}
+
+.form-field input:focus,
+.form-field textarea:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.form-field input.invalid,
+.form-field textarea.invalid {
+  border-color: #c62828;
+}
+
+.form-field textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.field-error {
+  color: #c62828;
+  font-size: 12px;
+  margin-top: -4px;
+}
+
+.form-actions {
+  margin-top: 10px;
+}
+
+.btn-submit {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #0056b3 0%, #004085 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.4);
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-submit:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.error-message {
+  color: #c62828;
+  background: #ffebee;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-left: 4px solid #c62828;
+}
+
+.success-message {
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+  font-size: 14px;
+  border-left: 4px solid #2e7d32;
+}
+
+/* Media Queries - Responsive */
+@media (max-width: 767px) {
+  .container {
+    max-width: 100%;
+    margin: 15px;
+    padding: 15px;
+  }
+
+  h2 {
+    font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  .course-form {
+    gap: 16px;
+  }
+
+  .form-field {
+    gap: 6px;
+  }
+
+  .form-field input,
+  .form-field textarea {
+    padding: 10px;
+    font-size: 16px; /* Evita zoom en iOS */
+  }
+
+  .btn-submit {
+    padding: 14px;
+    font-size: 16px;
+  }
+
+  .error-message,
+  .success-message {
+    padding: 10px;
+    font-size: 13px;
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1024px) {
+  .container {
+    max-width: 650px;
+    padding: 25px;
+  }
+}

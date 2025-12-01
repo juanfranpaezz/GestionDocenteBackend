@@ -1,0 +1,28 @@
+@if (errorMessage()) {
+  <p class="error-message">{{ errorMessage() }}</p>
+}
+
+@if (courses().length === 0 && !errorMessage()) {
+  <p class="no-courses">No hay cursos archivados.</p>
+}
+
+<div class="courses-grid">
+  @for (c of courses(); track c.id) {
+    <div class="course-card archived">
+      <div class="course-content" routerLink="/course/detail/{{c.id}}">
+        <h3 class="course-title">{{ c.name }}</h3>
+        <p class="course-school">{{ c.school }}</p>
+        @if (c.archivedDate) {
+          <p class="archived-date">Archivado: {{ c.archivedDate | date:'short' }}</p>
+        }
+      </div>
+
+      <div class="course-actions">
+        <button class="btn-unarchive" (click)="unarchiveCourse(c.id!); $event.stopPropagation()">
+          📤 Des-archivar
+        </button>
+      </div>
+    </div>
+  }
+</div>
+

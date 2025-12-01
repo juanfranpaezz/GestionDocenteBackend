@@ -1,0 +1,167 @@
+<div class="grade-scales-page">
+  <div class="header">
+    <div class="header-left">
+      <button class="btn-back" (click)="goBack()">← Volver</button>
+      <h2>Gestionar Tipos de Notas</h2>
+    </div>
+    <button class="btn-create" (click)="openCreateForm()">
+      ➕ Crear Escala
+    </button>
+  </div>
+
+  @if (errorMessage()) {
+    <div class="error-message">
+      {{ errorMessage() }}
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="loading">Cargando...</p>
+  }
+
+  @if (!loading() && gradeScales().length === 0) {
+    <p class="no-scales">No hay escalas de notas creadas. Crea una para comenzar.</p>
+  }
+
+  @if (!loading() && gradeScales().length > 0) {
+    <div class="scales-grid">
+      @for (scale of gradeScales(); track scale.id) {
+        <div class="scale-card">
+          <div class="scale-header">
+            <h3>{{ scale.name }}</h3>
+          </div>
+          
+          <div class="scale-options">
+            <h4>Opciones:</h4>
+            @if (scale.options && scale.options.length > 0) {
+              <ul class="options-list">
+                @for (option of scale.options; track option.id || $index) {
+                  <li class="option-item">
+                    <span class="option-label">{{ option.label }}</span>
+                    @if (option.numericValue !== null && option.numericValue !== undefined) {
+                      <span class="option-value">({{ option.numericValue }})</span>
+                    }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="no-options">Sin opciones</p>
+            }
+          </div>
+
+          <div class="scale-actions">
+            <button class="btn-edit" (click)="openEditForm(scale)">
+              ✏️ Editar
+            </button>
+            <button class="btn-delete" (click)="deleteScale(scale.id!)">
+              🗑 Eliminar
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- Formulario crear/editar -->
+  @if (showCreateForm()) {
+    <div class="modal-overlay" (click)="closeForm()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>{{ editingScale() ? 'Editar' : 'Crear' }} Escala de Notas</h3>
+          <button type="button" class="close-btn" (click)="closeForm()">×</button>
+        </div>
+        
+        <form [formGroup]="scaleForm" (ngSubmit)="saveScale()" class="scale-form">
+          <div class="form-group">
+            <label>Nombre de la escala:</label>
+            <input 
+              formControlName="name" 
+              placeholder="Ej: Aprobado/Desaprobado"
+              [class.invalid]="scaleForm.controls['name'].invalid && scaleForm.controls['name'].touched"
+            />
+            @if (scaleForm.controls['name'].invalid && scaleForm.controls['name'].touched) {
+              <small class="field-error">El nombre es obligatorio</small>
+            }
+          </div>
+
+          <div class="form-group">
+            <label class="section-label">Opciones de la escala:</label>
+            <p class="help-text">Define las opciones que los estudiantes podrán recibir. Por ejemplo: "Aprobado", "Desaprobado", "Distinguido", etc.</p>
+            <div class="options-header">
+              <button type="button" class="btn-add-option" (click)="addOption()">
+                ➕ Agregar Opción
+              </button>
+            </div>
+            
+            <div class="options-container">
+              @for (optionControl of optionsArray.controls; track $index) {
+                <div class="option-form-item" [formGroup]="$any(optionControl)">
+                  <div class="option-main">
+                    <div class="option-number">{{ $index + 1 }}</div>
+                    
+                    <div class="option-main-fields">
+                      <div class="option-label-group">
+                        <label class="option-field-label">Etiqueta (texto que verá el estudiante):</label>
+                        <input 
+                          type="text" 
+                          formControlName="label"
+                          placeholder="Ej: Aprobado, Desaprobado, Distinguido..."
+                          class="option-label-input"
+                          [class.invalid]="optionControl.get('label')?.invalid && optionControl.get('label')?.touched"
+                        />
+                        @if (optionControl.get('label')?.invalid && optionControl.get('label')?.touched) {
+                          <small class="field-error">La etiqueta es obligatoria</small>
+                        }
+                      </div>
+                      
+                      <div class="option-numeric-group">
+                        <label class="checkbox-label">
+                          <input 
+                            type="checkbox" 
+                            formControlName="useNumericValue"
+                          />
+                          <span>Asignar valor numérico (para calcular promedios)</span>
+                        </label>
+                        @if (optionControl.get('useNumericValue')?.value) {
+                          <input 
+                            type="number" 
+                            step="0.1"
+                            formControlName="numericValue"
+                            placeholder="Ej: 6.0, 4.0, 10.0"
+                            class="option-value-input"
+                          />
+                          <small class="help-text-small">Este valor se usará para calcular promedios</small>
+                        }
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="option-actions">
+                    <button type="button" class="btn-remove-option" (click)="removeOption($index)" title="Eliminar opción">
+                      🗑
+                    </button>
+                  </div>
+                </div>
+              }
+              
+              @if (optionsArray.length === 0) {
+                <div class="no-options-hint">
+                  <p>📝 No hay opciones agregadas</p>
+                  <p>Haz clic en "Agregar Opción" para comenzar</p>
+                </div>
+              }
+            </div>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" (click)="closeForm()">Cancelar</button>
+            <button type="submit" [disabled]="scaleForm.invalid || optionsArray.length === 0">
+              {{ editingScale() ? 'Actualizar' : 'Crear' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  }
+</div>
+

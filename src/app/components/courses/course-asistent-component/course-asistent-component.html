@@ -1,0 +1,125 @@
+<div class="asistent-container">
+    <div class="header">
+    <h1>Control de Asistencias</h1>
+    <div class="actions">
+        <div class="date-selector">
+          <label for="fecha-asistencia">Fecha:</label>
+          <input 
+            type="date" 
+            id="fecha-asistencia"
+            [value]="selectedDate()" 
+            (change)="onDateChange($any($event.target).value)"
+            class="date-input"
+          />
+        </div>
+        @if (hasPendingChanges()) {
+          <button class="btn-save" (click)="cargarAsistencias()" [disabled]="saving()">
+            {{ saving() ? 'Guardando...' : '💾 Cargar Asistencias' }}
+          </button>
+          <button class="btn-cancel" (click)="cancelarCambios()" [disabled]="saving()">
+            ❌ Cancelar
+          </button>
+        }
+        <button class="btn-export" (click)="exportarExcel()">
+            Exportar Excel
+        </button>
+    </div>
+    </div>
+
+    <!-- Sección para marcar asistencias de la fecha seleccionada -->
+    <div class="mark-attendance-section">
+      <div class="section-header">
+        <h2>Marcar Asistencias - {{ formatearFecha(selectedDate()) }}</h2>
+        <div class="quick-actions">
+          <button class="btn-quick" (click)="marcarTodos(true)">Marcar Todos Presentes</button>
+          <button class="btn-quick" (click)="marcarTodos(false)">Marcar Todos Ausentes</button>
+        </div>
+      </div>
+      <div class="attendance-table-wrapper">
+        <table class="attendance-marking-table">
+          <thead>
+            <tr>
+              <th class="col-student">Alumno</th>
+              <th class="col-checkbox">Asistencia</th>
+              <th class="col-status">Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (student of students(); track student.id) {
+              <tr class="attendance-row">
+                <td class="col-student">{{ student.firstName }} {{ student.lastName || '' }}</td>
+                <td class="col-checkbox">
+                  <input
+                    type="checkbox"
+                    [checked]="attendancesForSelectedDate().get(student.id!) ?? false"
+                    (change)="toggleAsistencia(student.id!, $event.target.checked)"
+                    class="attendance-checkbox"
+                  />
+                </td>
+                <td class="col-status">
+                  <span class="status-badge" [class.present]="attendancesForSelectedDate().get(student.id!)" [class.absent]="!attendancesForSelectedDate().get(student.id!)">
+                    {{ attendancesForSelectedDate().get(student.id!) ? 'Presente' : 'Ausente' }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  <!-- Tabla histórica de asistencias -->
+  <div class="historical-section">
+    <h2>Historial de Asistencias</h2>
+    <div class="table-wrapper">
+      <table class="asistencia-table">
+        <thead>
+          <tr>
+            <th class="fixed">Alumno</th>
+
+            @for (fecha of fechas(); track fecha) {
+              <th class="date-col">
+                <div>{{ formatearFecha(fecha) }}</div>
+                <small>{{ fecha }}</small>
+                <div class="counter">
+                  {{ totalPresentesPorFecha().get(fecha) ?? 0 }} / {{ students().length }}
+                </div>
+              </th>
+            } @empty {
+              <th class="no-dates">Sin fechas registradas</th>
+            }
+
+            <th class="total-col">Asistencia</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          @for (student of students(); track student.id) {
+            <tr>
+              <td class="fixed">{{ student.firstName }} {{ student.lastName || '' }}</td>
+
+              @for (fecha of fechas(); track fecha) {
+                <td class="cell">
+                  <span class="attendance-indicator" [class.present]="presenteMap().get(fecha)?.get(student.id!)" [class.absent]="!presenteMap().get(fecha)?.get(student.id!)">
+                    {{ presenteMap().get(fecha)?.get(student.id!) ? 'P' : 'A' }}
+                  </span>
+                </td>
+              }
+
+              <td class="total-col">
+                <strong>{{ porcentajePorAlumno().get(student.id!) ?? 0 }}%</strong>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (fechas().length === 0) {
+      <div class="empty">
+        <p>No hay asistencias registradas aún.</p>
+        <p>Selecciona una fecha arriba y marca las asistencias</p>
+      </div>
+    }
+  </div>
+</div>

@@ -1,0 +1,30 @@
+<section class="verify-container">
+  @if (loading()) {
+    <div class="loading-state">
+      <h2>Verificando tu email...</h2>
+      <p>Por favor espera mientras verificamos tu cuenta.</p>
+    </div>
+  }
+
+  @if (verified() && !loading()) {
+    <div class="success-state">
+      <div class="success-icon">✓</div>
+      <h2>¡Email verificado exitosamente!</h2>
+      <p>Tu cuenta ha sido verificada. Ahora puedes iniciar sesión.</p>
+      <a routerLink="/auth/login" class="login-button">Ir al inicio de sesión</a>
+    </div>
+  }
+
+  @if (errorMessage() && !loading()) {
+    <div class="error-state">
+      <div class="error-icon">✗</div>
+      <h2>Error al verificar el email</h2>
+      <p>{{ errorMessage() }}</p>
+      <div class="actions">
+        <a routerLink="/auth/register" class="register-link">Registrarse nuevamente</a>
+        <a routerLink="/auth/login" class="login-link">Ir al inicio de sesión</a>
+      </div>
+    </div>
+  }
+</section>
+

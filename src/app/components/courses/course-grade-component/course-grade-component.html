@@ -1,0 +1,325 @@
+<section class="grades-root">
+
+  <div class="header">
+    <h3>Planilla de notas</h3>
+
+    <div class="header-actions">
+      <button type="button" class="manage-types-btn" (click)="toggleTypeManager()">
+        {{ showTypeManager() ? 'Ocultar' : 'Gestionar' }} Tipos
+      </button>
+      <button type="button" class="export-btn" (click)="exportToExcel()">
+        📊 Exportar Excel
+      </button>
+    </div>
+  </div>
+
+  <!-- Cartel explicativo de colores -->
+  <div class="grade-colors-legend">
+    <div class="legend-item">
+      <span class="legend-color failed"></span>
+      <span class="legend-text">Desaprobado</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color passed"></span>
+      <span class="legend-text">Aprobado</span>
+    </div>
+    <div class="legend-item">
+      <span class="legend-color promoted"></span>
+      <span class="legend-text">Promocionado</span>
+    </div>
+  </div>
+
+  <div class="eval-form-container">
+    <form [formGroup]="evalForm" (ngSubmit)="addEvaluation()" class="eval-form">
+      <div class="eval-form-fields">
+        <input 
+          type="text" 
+          placeholder="Nombre evaluación (ej. Parcial 1)" 
+          formControlName="name"
+          [class.invalid]="evalForm.controls['name'].invalid && evalForm.controls['name'].touched" />
+        <input 
+          type="date" 
+          formControlName="date"
+          [class.invalid]="evalForm.controls['date'].invalid && evalForm.controls['date'].touched" />
+        <select formControlName="evaluationTypeId" class="type-select" (change)="onEvaluationTypeChange($any($event.target).value ? parseNumber($any($event.target).value) : null)">
+          <option [value]="null">Sin tipo</option>
+          @for (type of evaluationTypes(); track type.id) {
+            <option [value]="type.id">{{ type.nombre }}</option>
+          }
+        </select>
+        <select formControlName="gradeScaleId" class="scale-select">
+          <option [value]="null">Notas numéricas</option>
+          @for (scale of gradeScales(); track scale.id) {
+            <option [value]="scale.id">{{ scale.name }}</option>
+          }
+        </select>
+        <div class="grade-threshold-group">
+          <label class="threshold-label">Aprobación:</label>
+          <input 
+            type="number" 
+            [value]="evalForm.value.approvalGrade ?? course()?.approvalGrade ?? ''"
+            (input)="onApprovalGradeChange($any($event.target).value)"
+            min="0"
+            max="10"
+            step="0.1"
+            [placeholder]="course()?.approvalGrade ? formatNumber(course()?.approvalGrade) : 'Sin default'"
+            class="grade-threshold-input"
+            [class.invalid]="evalForm.controls['approvalGrade'].invalid && evalForm.controls['approvalGrade'].touched" />
+        </div>
+        <div class="grade-threshold-group">
+          <label class="threshold-label">Promoción:</label>
+          <div class="promotion-input-wrapper">
+            <input 
+              type="number" 
+              [value]="getQualificationGradeValue()"
+              (input)="onQualificationGradeChange($any($event.target).value)"
+              min="0"
+              max="10"
+              step="0.1"
+              [placeholder]="isPromotionEnabled() ? (course()?.qualificationGrade ? formatNumber(course()?.qualificationGrade) : 'Ingrese nota') : 'Sin valor de promoción'"
+              class="grade-threshold-input"
+              [class.invalid]="evalForm.controls['qualificationGrade'].invalid && evalForm.controls['qualificationGrade'].touched"
+              [readonly]="!isPromotionEnabled()" />
+            <button 
+              type="button"
+              class="promotion-toggle-btn"
+              [class.active]="isPromotionEnabled()"
+              (click)="togglePromotion()"
+              [title]="isPromotionEnabled() ? 'Desactivar promoción' : 'Activar promoción'">
+              {{ isPromotionEnabled() ? '☑' : '☐' }}
+            </button>
+          </div>
+        </div>
+        <button type="submit" [disabled]="evalForm.invalid" class="btn-submit-eval">Agregar evaluación</button>
+      </div>
+      @if (evalForm.controls['name'].invalid && evalForm.controls['name'].touched) {
+        <small class="field-error">El nombre de la evaluación es obligatorio</small>
+      }
+    </form>
+  </div>
+
+  @if (showTypeManager()) {
+    <div class="type-manager">
+      <h4>Gestionar Tipos de Evaluación</h4>
+      <form [formGroup]="typeForm" (ngSubmit)="addEvaluationType()" class="type-form">
+        <input 
+          type="text" 
+          placeholder="Nombre del tipo (ej. Parcial, TP, Examen Final)" 
+          formControlName="nombre"
+          [class.invalid]="typeForm.controls['nombre'].invalid && typeForm.controls['nombre'].touched" />
+        <input 
+          type="number" 
+          placeholder="Porcentaje (0-100)" 
+          formControlName="weight"
+          min="0"
+          max="100"
+          step="1"
+          [class.invalid]="typeForm.controls['weight'].invalid && typeForm.controls['weight'].touched" />
+        <button type="submit" [disabled]="typeForm.invalid">Agregar Tipo</button>
+      </form>
+      <div class="types-list">
+        @for (type of evaluationTypes(); track type.id) {
+          <div class="type-item">
+            <span>{{ type.nombre }}</span>
+            <div class="type-weight">
+              <input 
+                type="number" 
+                [value]="editingTypeWeight().get(type.id!) ?? (type.weight !== null && type.weight !== undefined ? type.weight : '')"
+                (input)="updateTypeWeight(type.id!, $any($event.target).value)"
+                (blur)="saveTypeWeight(type.id!)"
+                [min]="getMinWeight(type.id!)"
+                [max]="getMaxWeight(type.id!)"
+                step="1"
+                [placeholder]="getAutoWeight(type.id!)"
+                class="weight-input"
+              />
+              <span class="percentage-symbol">%</span>
+              @if ((type.weight === null || type.weight === undefined) && !editingTypeWeight().has(type.id!)) {
+                <span class="auto-weight-badge">Auto: {{ getAutoWeight(type.id!) }}%</span>
+              }
+            </div>
+            <button type="button" class="delete-type-btn" (click)="deleteEvaluationType(type.id!)">🗑</button>
+          </div>
+        }
+        @if (evaluationTypes().length === 0) {
+          <p class="muted">No hay tipos de evaluación creados. Crea uno para agrupar evaluaciones.</p>
+        }
+      </div>
+    </div>
+  }
+
+  @if (loading()) {
+    <p class="muted">Cargando...</p>
+  }
+
+  @if (error()) {
+    <p class="error">{{ error() }}</p>
+  }
+
+  @if (filteredEvaluations().length === 0) {
+    <p class="muted">No hay evaluaciones para esta materia. Creá una arriba para que aparezcan las columnas.</p>
+  }
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="sticky-col">Alumno</th>
+          @for (ev of filteredEvaluations(); track ev.id) {
+            <th class="eval-header">
+              <div class="eval-header-top">
+                <div class="eval-title">{{ ev.nombre }}</div>
+                @if (canEditEvaluation(ev)) {
+                  <button class="del-ev" (click)="removeEvaluation(ev.id!)" title="Eliminar evaluación">🗑</button>
+                }
+              </div>
+              <div class="eval-date">{{ ev.date }}</div>
+              @if (ev.evaluationTypeId) {
+                <div class="eval-type">
+                  @for (type of evaluationTypes(); track type.id) {
+                    @if (type.id === ev.evaluationTypeId) {
+                      <span class="type-badge">{{ type.nombre }}</span>
+                    }
+                  }
+                </div>
+              }
+              <div class="eval-actions">
+                <button class="send-email-btn" (click)="sendGradesByEmail(ev.id!)" title="Enviar notas por email">
+                  📧 Enviar
+                </button>
+                @if (!canEditEvaluation(ev)) {
+                  <span class="sent-badge" title="Las notas ya fueron enviadas por email">✓ Enviado</span>
+                }
+              </div>
+              @if (ev.gradeScaleId) {
+                <div class="scale-badge">
+                  @for (scale of gradeScales(); track scale.id) {
+                    @if (scale.id === ev.gradeScaleId) {
+                      <span>{{ scale.name }}</span>
+                    }
+                  }
+                </div>
+              }
+            </th>
+          }
+          @if (hasGroupedAverages()) {
+            @for (type of getTypesWithAverages(); track type.id) {
+              <th class="grouped-header">
+                <div class="grouped-title">Promedio {{ type.nombre }}</div>
+              </th>
+            }
+            <th class="final-header">
+              <div class="final-title">Promedio Final</div>
+            </th>
+          }
+        </tr>
+      </thead>
+
+      <tbody>
+        @for (st of students(); track st.id) {
+          <tr>
+            <td class="sticky-col name-cell">{{ st.firstName }} {{ st.lastName || '' }}</td>
+
+            @for (ev of filteredEvaluations(); track ev.id) {
+              <td>
+                @if (getGradeScaleForEvaluation(ev)) {
+                  <select
+                    [value]="getGradeValue(st.id!, ev.id!)"
+                    (change)="updateGradeCategorical(st.id!, ev.id!, $any($event.target).value)"
+                    class="grade-select"
+                  >
+                    <option value="">-</option>
+                    @for (option of getGradeScaleOptions(ev); track option.value) {
+                      <option [value]="option.value">{{ option.label }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    type="number"
+                    min="0"
+                    max="10"
+                    step="0.1"
+                    [value]="getGrade(st.id!, ev.id!)"
+                    (blur)="updateGrade(st.id!, ev.id!, $any($event.target).value)"
+                    (keydown.enter)="$event.preventDefault(); updateGrade(st.id!, ev.id!, $any($event.target).value)"
+                    (input)="error.set(null)"
+                    [class]="'grade-input ' + getGradeStatusClass(st.id!, ev.id!)"
+                  />
+                }
+              </td>
+            }
+            
+            @if (getGroupedAverageForStudent(st.id!)) {
+              @for (groupedAvg of getGroupedAverageForStudent(st.id!)!.groupedAverages; track groupedAvg.evaluationTypeId) {
+                <td class="grouped-average-cell" [title]="'Promedio de ' + groupedAvg.evaluationTypeName">
+                  <div class="grouped-avg-label">{{ groupedAvg.evaluationTypeName }}</div>
+                  <div class="grouped-avg-value-average">{{ groupedAvg.average.toFixed(2) }}</div>
+                  <div class="grouped-avg-count">({{ groupedAvg.evaluationsCount }})</div>
+                </td>
+              }
+              <td class="final-average-cell">
+                <div class="final-avg-label">Promedio Final</div>
+                <div class="final-avg-value-average">
+                  {{ getGroupedAverageForStudent(st.id!)!.finalAverage !== null ? getGroupedAverageForStudent(st.id!)!.finalAverage!.toFixed(2) : '-' }}
+                </div>
+              </td>
+            }
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+
+@if(errorMessage()) {
+  <p style="color:red;">{{ errorMessage() }}</p>
+}
+
+<!-- Modal para envío personalizado de emails -->
+@if (showEmailModal()) {
+  <div class="modal-overlay" (click)="closeEmailModal()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3>Enviar Notas Personalizado</h3>
+        <button type="button" class="close-btn" (click)="closeEmailModal()">×</button>
+      </div>
+      <div class="modal-body">
+        <form [formGroup]="emailForm" (ngSubmit)="sendGradesCustom()">
+          <div class="form-group">
+            <label>
+              <input type="checkbox" formControlName="useTemplate" />
+              Usar template de email
+            </label>
+          </div>
+          
+          @if (emailForm.value.useTemplate) {
+            <div class="form-group">
+              <label>Template de email:</label>
+              <select formControlName="templateId">
+                <option [value]="null">Template por defecto</option>
+                @for (template of emailTemplates(); track template.id) {
+                  <option [value]="template.id">{{ template.name }}</option>
+                }
+              </select>
+            </div>
+          }
+          
+          <div class="form-group">
+            <label>Mensaje personalizado (opcional):</label>
+            <textarea 
+              formControlName="customMessage" 
+              rows="4"
+              placeholder="Mensaje adicional que se agregará al email..."
+            ></textarea>
+          </div>
+          
+          <div class="modal-actions">
+            <button type="button" (click)="closeEmailModal()">Cancelar</button>
+            <button type="submit">Enviar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+}

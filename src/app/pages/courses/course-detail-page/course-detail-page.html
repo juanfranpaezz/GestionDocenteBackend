@@ -1,0 +1,197 @@
+<div class="course-detail">
+  <div class="header">
+    <div class="header-left">
+      <h2>{{ (course()?.name || '') + ' - ' + (course()?.school || '') | uppercase }}</h2>
+      @if (course()?.archived) {
+        <span class="archived-badge">📦 Archivado</span>
+      }
+    </div>
+
+    <div class="header-actions">
+      <button class="btn-email-custom" (click)="openEmailModal()">
+        ✉️ Mensaje Personalizado
+      </button>
+    </div>
+  </div>
+
+  <!-- Lista de alumnos (siempre visible) -->
+  <app-course-students
+    [courseId]="courseId()"
+    (studentAdded)="onStudentAdded($event)"
+    (studentRemoved)="onStudentRemoved($event)"
+    (studentUpdated)="onStudentUpdated($event)">
+  </app-course-students>
+
+  <!-- Sistema de Tabs para Materias -->
+  @if (subjects().length > 0) {
+    <div class="subjects-tabs-container">
+      <div class="tabs-header">
+        <div class="tabs-list">
+          @for (subject of subjects(); track subject.id) {
+            <div 
+              class="tab-item" 
+              [class.active]="activeSubjectId() === subject.id"
+              (click)="selectSubject(subject.id!)">
+              @if (editingSubjectName() === subject.id) {
+                <!-- Edición inline del nombre -->
+                <div class="tab-name-edit" (click)="$event.stopPropagation()">
+                  <input 
+                    type="text" 
+                    [value]="editingSubjectNameValue()"
+                    (input)="editingSubjectNameValue.set($any($event.target).value)"
+                    (keyup.enter)="saveSubjectName(subject.id!)"
+                    (keyup.escape)="cancelEditingSubjectName()"
+                    class="tab-name-input"
+                    autofocus
+                  />
+                  <button 
+                    type="button" 
+                    class="tab-save-btn"
+                    (click)="saveSubjectName(subject.id!)"
+                    title="Guardar">
+                    ✓
+                  </button>
+                  <button 
+                    type="button" 
+                    class="tab-cancel-btn"
+                    (click)="cancelEditingSubjectName()"
+                    title="Cancelar">
+                    ×
+                  </button>
+                </div>
+              } @else {
+                <!-- Nombre de la materia (clickeable para editar si no tiene nombre) -->
+                <span 
+                  class="tab-name"
+                  [class.unnamed]="!subject.name || subject.name.trim() === ''"
+                  (dblclick)="startEditingSubjectName(subject)">
+                  {{ subject.name && subject.name.trim() !== '' ? subject.name : 'Sin nombre (doble click para editar)' }}
+                </span>
+                <!-- Botón eliminar materia -->
+                <button 
+                  type="button" 
+                  class="tab-delete-btn"
+                  (click)="deleteSubject(subject.id!); $event.stopPropagation()"
+                  title="Eliminar materia">
+                  ×
+                </button>
+              }
+            </div>
+          }
+        </div>
+        <button 
+          class="btn-add-subject-small" 
+          (click)="showAddSubjectForm()"
+          [disabled]="hasUnnamedSubject()"
+          title="{{ hasUnnamedSubject() ? 'Primero debes nombrar la materia sin nombre' : 'Agregar Materia' }}">
+          + Agregar
+        </button>
+      </div>
+
+      <!-- Formulario para agregar materia (modal o inline) -->
+      @if (addingSubject()) {
+        <div class="add-subject-inline">
+          <form [formGroup]="subjectForm" (ngSubmit)="addSubject()">
+            <input 
+              type="text" 
+              formControlName="name" 
+              placeholder="Nombre de la nueva materia"
+              class="input-field"
+            />
+            <div class="form-actions">
+              <button type="submit" [disabled]="subjectForm.invalid" class="btn-save">
+                Guardar
+              </button>
+              <button type="button" (click)="addingSubject.set(false); subjectForm.reset()" class="btn-cancel">
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      }
+
+      <!-- Contenido del tab activo -->
+      @if (activeSubjectId()) {
+        <div class="tab-content">
+          <!-- Horarios de la materia activa -->
+          <app-course-schedule 
+            [courseId]="courseId()"
+            [subjectId]="activeSubjectId() || undefined">
+          </app-course-schedule>
+
+          <!-- Botones para cambiar vista -->
+          <div class="view-toggle-section">
+            <button 
+              class="btn-toggle" 
+              [class.active]="!mostrarAsistencias()"
+              (click)="mostrarAsistencias.set(false)">
+              Ver Notas
+            </button>
+            <button 
+              class="btn-toggle" 
+              [class.active]="mostrarAsistencias()"
+              (click)="mostrarAsistencias.set(true)">
+              Ver Asistencias
+            </button>
+          </div>
+
+          <!-- Toggle entre Notas y Asistencias -->
+          @if (mostrarAsistencias()) {
+            <app-course-attendance
+              [courseId]="courseId()"
+              [subjectId]="activeSubjectId() || undefined"
+              [students]="studentsForChildren()"
+              [courseName]="course()?.name || ''"
+              (attendancesUpdated)="onAttendancesUpdated()">
+            </app-course-attendance>
+          } @else {
+            <app-course-grades
+              [courseId]="courseId()"
+              [subjectId]="activeSubjectId() || undefined"
+              [courseName]="course()?.name || ''"
+              #gradesComp
+              (gradesUpdated)="onGradesUpdated()">
+            </app-course-grades>
+          }
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Si no hay materias, mostrar mensaje -->
+    <div class="no-subjects-message">
+      <p>Cargando materias...</p>
+    </div>
+  }
+
+  <!-- Modal para mensaje personalizado -->
+  @if (showEmailModal()) {
+    <div class="modal-overlay" (click)="closeEmailModal()">
+      <div class="modal-content" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h3>Mensaje Personalizado</h3>
+          <button type="button" class="close-btn" (click)="closeEmailModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <form [formGroup]="emailForm" (ngSubmit)="sendPersonalizedEmail()">
+            <div class="form-group">
+              <label>Asunto:</label>
+              <input type="text" formControlName="subject" placeholder="Asunto del mensaje" />
+            </div>
+            <div class="form-group">
+              <label>Mensaje:</label>
+              <textarea 
+                formControlName="message" 
+                rows="6"
+                placeholder="Escribe tu mensaje personalizado para todos los estudiantes del curso..."
+              ></textarea>
+            </div>
+            <div class="modal-actions">
+              <button type="button" (click)="closeEmailModal()">Cancelar</button>
+              <button type="submit" [disabled]="emailForm.invalid">Enviar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  }
+</div>

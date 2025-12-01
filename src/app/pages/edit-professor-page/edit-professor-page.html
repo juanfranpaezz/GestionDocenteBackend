@@ -1,0 +1,80 @@
+<section class="register-container">
+
+  <h2>Editar datos del Profesor</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+    <div class="form-field">
+      <label>Nombre</label>
+      <input formControlName="name" placeholder="Nombre completo" />
+      @if (submitted && form.controls['name'].invalid) {
+        <small>Nombre obligatorio</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Apellido</label>
+      <input formControlName="lastname" placeholder="Apellido completo" />
+      @if (submitted && form.controls['lastname'].invalid) {
+        <small>Apellido obligatorio</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Email</label>
+      <input formControlName="email" type="email" />
+      @if (submitted && form.controls['email'].invalid) {
+        @if (form.controls['email'].errors?.['required']) {
+          <small>Email obligatorio</small>
+        }
+        @if (form.controls['email'].errors?.['email']) {
+          <small>Formato de email inválido</small>
+        }
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Celular</label>
+      <input formControlName="cel" type="number" />
+      @if (submitted && form.controls['cel'].invalid) {
+        @if (form.controls['cel'].errors?.['required']) {
+          <small>Celular obligatorio</small>
+        }
+        @if (form.controls['cel'].errors?.['celularInvalido']) {
+          <small>El celular debe tener 10 números</small>
+        }
+      }
+    </div>
+
+    <!-- SI NO QUIERES EDITAR CONTRASEÑA → lo quitás -->
+    <div class="form-field">
+      <label>Nueva contraseña (opcional)</label>
+      <input formControlName="password" type="password" placeholder="Dejar vacío para no cambiar" />
+      @if (submitted && form.controls['password'].invalid) {
+        @if (form.controls['password'].errors?.['minlength']) {
+          <small>Mínimo 6 caracteres</small>
+        }
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Confirmar nueva contraseña</label>
+      <input formControlName="confirmPassword" type="password" />
+      @if (submitted && passwordsDoNotMatch()) {
+        <small>Las contraseñas no coinciden</small>
+      }
+    </div>
+
+    <button type="submit" [disabled]="loading()">Guardar cambios</button>
+
+  </form>
+
+  @if (loading()) {
+    <p class="info">Guardando...</p>
+  }
+
+  @if (message()) {
+    <p class="info">{{ message() }}</p>
+  }
+
+</section>

@@ -1,0 +1,85 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+main {
+  flex: 1 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 0;
+  background: var(--bg-secondary);
+}
+
+footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-card);
+  padding: 20px;
+  margin-top: 40px;
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+  color: var(--text-primary);
+}
+
+/* Mejoras globales para mensajes de error */
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c62828;
+  background: #ffebee;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 14px;
+  border-left: 4px solid #c62828;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark-theme .error-message {
+  color: #ff6b6b;
+  background: rgba(198, 40, 40, 0.15);
+  border-left-color: #ff6b6b;
+}
+
+.error-message::before {
+  content: "⚠️";
+  font-size: 18px;
+}
+
+/* Mejoras globales para mensajes de éxito */
+.success-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #2e7d32;
+  background: #e8f5e9;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin: 12px 0;
+  font-size: 14px;
+  border-left: 4px solid #2e7d32;
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark-theme .success-message {
+  color: #4caf50;
+  background: rgba(46, 125, 50, 0.15);
+  border-left-color: #4caf50;
+}
+
+.success-message::before {
+  content: "✅";
+  font-size: 18px;
+}

@@ -1,0 +1,141 @@
+<section class="professors-container">
+
+  <header class="professors-header">
+    <h1 class="professors-header__title">Gestión de Profesores</h1>
+  </header>
+
+  <!-- Búsqueda -->
+  <div class="search-section">
+    <form [formGroup]="searchForm" (ngSubmit)="searchProfessors($event)">
+      <input
+        type="text"
+        formControlName="query"
+        placeholder="Buscar por nombre, apellido o email..."
+        class="search-input"
+        (keyup.enter)="searchProfessors($event)"
+      />
+      <button type="submit" class="search-button">Buscar</button>
+      <button type="button" (click)="searchForm.reset(); loadProfessors()" class="clear-button">
+        Limpiar
+      </button>
+    </form>
+  </div>
+
+  @if (loading()) {
+    <div class="spinner-container"><div class="spinner"></div></div>
+  }
+
+  @else if (error()) {
+    <div class="alert alert--error">{{ error() }}</div>
+  }
+
+  @else {
+
+    <!-- Paginación TOP -->
+    <div class="pagination">
+      <button class="pagination-btn"
+              (click)="prevPage()"
+              [disabled]="page() === 0">
+        ⬅ Anterior
+      </button>
+
+      <span class="pagination-info">
+        Página {{ page() + 1 }} de {{ getTotalPages() }}
+      </span>
+
+      <button class="pagination-btn"
+              (click)="nextPage()"
+              [disabled]="(page() + 1) * pageSize >= filteredProfessors().length">
+        Siguiente ➡
+      </button>
+    </div>
+
+    <!-- Grid de Profesores -->
+    <div class="professors-grid">
+
+      @for (prof of pagedProfessors(); track prof.id; let i = $index) {
+
+        <article class="professor-card">
+
+          <div class="professor-card__header">
+
+            @if (prof.photoUrl) {
+              <img [src]="prof.photoUrl"
+                   [alt]="prof.name + ' ' + prof.lastname"
+                   class="professor-card__avatar">
+            } @else {
+              <div class="professor-card__avatar-placeholder">
+                {{ (prof.name && prof.name[0]) || '' }}{{ (prof.lastname && prof.lastname[0]) || '' }}
+              </div>
+            }
+
+            <div class="professor-card__info">
+              <h3 class="professor-card__name">
+                {{ prof.name }} {{ prof.lastname }}
+              </h3>
+              <p class="professor-card__email">{{ prof.email }}</p>
+            </div>
+
+          </div>
+
+          <div class="professor-card__body">
+            <div class="professor-card__detail">
+              <strong>Rol:</strong>
+              <span class="badge"
+                    [class.badge--admin]="prof.role === 'ADMIN'"
+                    [class.badge--professor]="prof.role === 'PROFESSOR'">
+                {{ prof.role === 'ADMIN' ? 'Administrador' : 'Profesor' }}
+              </span>
+            </div>
+
+            @if (prof.cel) {
+              <div class="professor-card__detail">
+                <strong>Teléfono:</strong>
+                {{ prof.cel }}
+              </div>
+            }
+          </div>
+
+          <div class="professor-card__actions">
+            @if (!isCurrentUser(prof)) {
+              <button class="btn-edit" (click)="editProfessor(prof.id!)">✏️ Editar</button>
+              <button class="btn btn--danger" (click)="deleteProfessor(prof.id!)">Eliminar</button>
+            } @else {
+              <span class="current-user-label">Tu cuenta</span>
+            }
+          </div>
+
+        </article>
+
+      }
+
+      @empty {
+        <p class="empty-message">No se encontraron profesores.</p>
+      }
+
+    </div>
+
+    <!-- Paginación BOTTOM -->
+    <div class="pagination pagination--bottom">
+
+      <button class="pagination-btn"
+              (click)="prevPage()"
+              [disabled]="page() === 0">
+        ⬅ Anterior
+      </button>
+
+      <span class="pagination-info">
+        Página {{ page() + 1 }} de {{ getTotalPages() }}
+      </span>
+
+      <button class="pagination-btn"
+              (click)="nextPage()"
+              [disabled]="(page() + 1) * pageSize >= filteredProfessors().length">
+        Siguiente ➡
+      </button>
+
+    </div>
+
+  }
+
+</section>

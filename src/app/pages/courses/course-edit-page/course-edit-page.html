@@ -1,0 +1,63 @@
+<div class="container">
+  <h2>Editar Curso</h2>
+
+  @if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
+
+  @if (successMessage()) {
+    <p class="success-message">{{ successMessage() }}</p>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="course-form">
+
+    <div class="form-field">
+      <label for="name">Nombre del curso <span class="required">*</span></label>
+      <input 
+        type="text" 
+        id="name"
+        formControlName="name"
+        [class.invalid]="submitted() && form.controls['name'].invalid"
+        placeholder="Ej: Matemática I">
+      @if (submitted() && form.controls['name'].invalid) {
+        <small class="field-error">
+          @if (form.controls['name'].errors?.['required']) {
+            El nombre del curso es obligatorio
+          }
+        </small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="school">Escuela <span class="required">*</span></label>
+      <input 
+        type="text" 
+        id="school"
+        formControlName="school"
+        [class.invalid]="submitted() && form.controls['school'].invalid"
+        placeholder="Ej: Escuela Secundaria N°1">
+      @if (submitted() && form.controls['school'].invalid) {
+        <small class="field-error">
+          @if (form.controls['school'].errors?.['required']) {
+            La escuela es obligatoria
+          }
+        </small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label for="description">Descripción (opcional)</label>
+      <textarea 
+        id="description"
+        rows="3" 
+        formControlName="description"
+        placeholder="Descripción del curso..."></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button type="submit" [disabled]="form.invalid" class="btn-submit">
+        Guardar Cambios
+      </button>
+    </div>
+  </form>
+</div>

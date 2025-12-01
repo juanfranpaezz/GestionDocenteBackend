@@ -1,0 +1,43 @@
+@if (errorMessage()) {
+  <p class="error-message">{{ errorMessage() }}</p>
+}
+
+@if (courses().length === 0 && !errorMessage()) {
+  <p class="no-courses">No hay cursos disponibles.</p>
+}
+
+<div class="courses-grid">
+
+  @for (c of courses(); track c.id) {
+    <div class="course-card">
+      <div class="course-content" routerLink="/course/detail/{{c.id}}">
+        <h3 class="course-title">{{ c.name }}</h3>
+        <p class="course-school">{{ c.school }}</p>
+      </div>
+
+      <div class="course-menu-container">
+        <button class="course-menu-btn" (click)="toggleCourseMenu(c.id!); $event.stopPropagation()">
+          ⋮
+        </button>
+        @if (openMenuId() === c.id) {
+          <div class="course-menu-dropdown" (click)="$event.stopPropagation()">
+            <button class="menu-item" (click)="editCourse(c.id!); closeMenu()">
+              ✏️ Editar
+            </button>
+            <button class="menu-item" (click)="archiveCourse(c.id!); closeMenu()">
+              📦 Archivar
+            </button>
+            <button class="menu-item" (click)="duplicateCourse(c.id!); closeMenu()">
+              📋 Duplicar
+            </button>
+            <button class="menu-item menu-item-danger" (click)="deleteCourse(c.id!); closeMenu()">
+              🗑 Eliminar
+            </button>
+          </div>
+        }
+      </div>
+
+    </div>
+  }
+
+</div>

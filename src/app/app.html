@@ -1,0 +1,18 @@
+@if (showHeader()) {
+  <header>
+    <app-nav-component
+      [userName]="currentUser()?.name ?? null"
+      [userImage]="getUserImage()"
+      [userRole]="currentUser()?.role">
+    </app-nav-component>
+  </header>
+}
+<main>
+  <router-outlet></router-outlet>
+</main>
+
+@if (showFooter()) {
+  <footer>
+    <app-footer-component></app-footer-component>
+  </footer>
+}

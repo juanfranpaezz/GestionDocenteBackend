@@ -1,0 +1,90 @@
+<section class="register-container">
+
+  <h2>Crear cuenta de Profesor</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+    <div class="form-field">
+      <label>Nombre</label>
+      <input formControlName="name" placeholder="Nombre completo" />
+      @if (submitted && form.controls['name'].invalid) {
+        <small>Nombre obligatorio</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Apellido</label>
+      <input formControlName="lastname" placeholder="Apellido completo" />
+      @if (submitted && form.controls['lastname'].invalid) {
+        <small>Nombre obligatorio</small>
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Email</label>
+      <input formControlName="email" type="email" placeholder="ejemplo@correo.com" />
+      @if (submitted && form.controls['email'].invalid) {
+        @if (form.controls['email'].errors?.['required']) {
+          <small>Email obligatorio</small>
+        }
+        @if (form.controls['email'].errors?.['email']) {
+          <small>Formato de email inválido</small>
+        }
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Celular</label>
+      <input formControlName="cel" type="number" placeholder="2230983984343" />
+      @if (submitted && form.controls['cel'].invalid) {
+        @if (form.controls['cel'].errors?.['required']) {
+          <small>Celular obligatorio</small>
+        }
+        @if (form.controls['cel'].errors?.['celularInvalido']) {
+            <small>El celular debe tener 10 números</small>
+        }
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Contraseña</label>
+      <input formControlName="password" type="password" placeholder="Mínimo 6 caracteres" />
+      @if (submitted && form.controls['password'].invalid) {
+        @if (form.controls['password'].errors?.['required']) {
+          <small>Contraseña obligatoria</small>
+        }
+        @if (form.controls['password'].errors?.['minlength']) {
+          <small>Mínimo 6 caracteres</small>
+        }
+      }
+    </div>
+
+    <div class="form-field">
+      <label>Confirmar contraseña</label>
+      <input formControlName="confirmPassword" type="password" />
+      @if (submitted && passwordsDoNotMatch()) {
+        <small>Las contraseñas no coinciden</small>
+      }
+    </div>
+
+    <button type="submit" [disabled]="loading()">Registrarme</button>
+
+  </form>
+
+  @if (loading()) {
+    <p class="info">Registrando...</p>
+  }
+
+  @if (message()) {
+    <div class="success-message">
+      <p>{{ message() }}</p>
+      <p class="info-small">Después de verificar tu email, podrás iniciar sesión.</p>
+      <a [href]="getGmailUrl()" target="_blank" class="login-link">📧 Abrir mail</a>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
+
+</section>

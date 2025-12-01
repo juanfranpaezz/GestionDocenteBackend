@@ -1,0 +1,95 @@
+<nav class="navbar">
+
+  <!-- Lado izquierdo -->
+  <div class="user-section" (click)="toggleMenu()">
+    
+    <img 
+      [src]="getImageSrc()"
+      class="profile-img"
+      (error)="handleImageError($event)"
+      (load)="imageError.set(false)"
+      alt="Foto de perfil"
+    />
+
+    <span class="username">
+      {{ userName || 'Usuario' }}
+    </span>
+
+    <span class="arrow">▾</span>
+
+    <!-- Menú desplegable -->
+    <div class="dropdown" [class.open]="menuOpen()">
+
+      <a class="dropdown-item" routerLink="/auth/edit">Editar datos de usuario</a>
+
+     <a class="dropdown-item" (click)="openFilePicker($event)">
+        Cambiar foto de perfil
+      </a>
+
+      <input 
+        type="file"
+        accept="image/*"
+        #fileInput
+        style="display:none"
+        (change)="onFileSelected($event)"
+      />
+
+
+    </div>
+  </div>
+
+  <!-- Botón hamburguesa (solo móvil) -->
+  <button class="hamburger-btn" (click)="toggleMobileMenu()" aria-label="Menú">
+    <span class="hamburger-icon">☰</span>
+  </button>
+
+  <!-- Centro: Buscador y acciones (solo profesores) -->
+  @if (!isAdmin) {
+    <div class="nav-center">
+      <input 
+        type="text" 
+        placeholder="Buscar por nombre o escuela..." 
+        [value]="searchQuery()"
+        (input)="onSearchChange($any($event.target).value)"
+        class="nav-search-input"
+        (click)="$event.stopPropagation()"
+      />
+      <button class="nav-btn-archived" (click)="goToArchived($event); closeMobileMenu()">
+        📦 Archivados
+      </button>
+      <button class="nav-btn-scales" (click)="goToGradeScales($event); closeMobileMenu()">
+        📊 Tipos de Notas
+      </button>
+      <button class="nav-btn-theme" (click)="toggleTheme(); closeMobileMenu()" title="Cambiar tema">
+        @if (currentTheme() === 'light') {
+          🌙 Modo Oscuro
+        } @else {
+          ☀️ Modo Claro
+        }
+      </button>
+    </div>
+  }
+
+  <!-- Lado derecho -->
+  <div class="nav-links" [class.mobile-open]="mobileMenuOpen()">
+    <!-- Solo profesores pueden ver cursos -->
+    @if (!isAdmin) {
+      <a routerLink="/course/list" (click)="closeMobileMenu()">Mis cursos</a>
+      <a routerLink="/course/create" (click)="closeMobileMenu()">Crear curso</a>
+    }
+    
+    <!-- Solo admins pueden ver profesores y crear admins -->
+    @if (isAdmin) {
+      <a routerLink="/professors/list" (click)="closeMobileMenu()">Profesores</a>
+      <a routerLink="/auth/register" (click)="closeMobileMenu()">Crear Administrador</a>
+    }
+    
+    <a class="logout" (click)="logout(); closeMobileMenu()">Cerrar sesión</a>
+  </div>
+
+  <!-- Overlay para móvil -->
+  @if (mobileMenuOpen()) {
+    <div class="mobile-overlay mobile-open" (click)="closeMobileMenu()"></div>
+  }
+
+</nav>

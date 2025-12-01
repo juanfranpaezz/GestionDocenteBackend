@@ -1,0 +1,244 @@
+/* You can add global styles to this file, and also import other style files */
+
+html, body { height: 100%; }
+body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+/* ===== VARIABLES CSS PARA MODO CLARO ===== */
+:root {
+  /* Fondos */
+  --bg-primary: #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary: #f9f9f9;
+  --bg-hover: #f0f0f0;
+  --bg-card: #ffffff;
+  --bg-input: #ffffff;
+  --bg-header: linear-gradient(135deg, #1e1e2f 0%, #2d2d44 100%);
+  
+  /* Textos */
+  --text-primary: #030303;
+  --text-secondary: #606060;
+  --text-tertiary: #909090;
+  --text-inverse: #ffffff;
+  
+  /* Bordes */
+  --border-color: #e0e0e0;
+  --border-hover: #d0d0d0;
+  
+  /* Botones */
+  --btn-primary-bg: #1976d2;
+  --btn-primary-hover: #1565c0;
+  --btn-secondary-bg: #6c757d;
+  --btn-secondary-hover: #5a6268;
+  --btn-danger-bg: #c62828;
+  --btn-danger-hover: #b71c1c;
+  
+  /* Tablas */
+  --table-header-bg: #f8f9fa;
+  --table-row-hover: #f5f5f5;
+  --table-border: #e0e0e0;
+  
+  /* Inputs */
+  --input-bg: #ffffff;
+  --input-border: #ddd;
+  --input-focus: #1976d2;
+  
+  /* Dropdowns */
+  --dropdown-bg: #ffffff;
+  --dropdown-hover: #f5f5f5;
+  
+  /* Sombras */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.15);
+  
+  /* Colores adicionales */
+  --success-bg: #28a745;
+  --success-hover: #218838;
+  --success-text: #2e7d32;
+  --success-light: #e8f5e9;
+  --warning-bg: #ffc107;
+  --warning-hover: #e0a800;
+  --warning-text: #92400e;
+  --warning-light: #fef3c7;
+  --info-bg: #17a2b8;
+  --info-hover: #138496;
+  --overlay-bg: rgba(0, 0, 0, 0.5);
+  --btn-text: #ffffff;
+}
+
+/* ===== VARIABLES CSS PARA MODO OSCURO (YouTube style) ===== */
+html.dark-theme {
+  /* Fondos - tonos grises como YouTube (más claros para mejor contraste) */
+  --bg-primary: #0f0f0f;        /* Fondo principal (casi negro) */
+  --bg-secondary: #1a1a1a;       /* Fondo secundario (más claro) */
+  --bg-tertiary: #252525;        /* Fondo terciario (más claro) */
+  --bg-hover: #2d2d2d;          /* Hover (más claro) */
+  --bg-card: #1f1f1f;           /* Cards (más claro) */
+  --bg-input: #121212;          /* Inputs */
+  --bg-header: #1f1f1f;         /* Header (más claro) */
+  
+  /* Textos */
+  --text-primary: #ffffff;       /* Texto principal (blanco) */
+  --text-secondary: #aaaaaa;     /* Texto secundario (gris claro) */
+  --text-tertiary: #717171;      /* Texto terciario (gris medio) */
+  --text-inverse: #030303;       /* Texto inverso */
+  
+  /* Bordes */
+  --border-color: #303030;       /* Bordes (gris medio) */
+  --border-hover: #404040;      /* Bordes hover */
+  
+  /* Botones */
+  --btn-primary-bg: #3ea6ff;    /* Azul YouTube */
+  --btn-primary-hover: #2d8ce8;
+  --btn-secondary-bg: #3f3f3f;
+  --btn-secondary-hover: #4a4a4a;
+  --btn-danger-bg: #cc0000;
+  --btn-danger-hover: #b30000;
+  
+  /* Tablas */
+  --table-header-bg: #212121;
+  --table-row-hover: #272727;
+  --table-border: #303030;
+  
+  /* Inputs */
+  --input-bg: #121212;
+  --input-border: #303030;
+  --input-focus: #3ea6ff;
+  
+  /* Dropdowns */
+  --dropdown-bg: #282828;
+  --dropdown-hover: #3f3f3f;
+  
+  /* Sombras */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
+  
+  /* Colores adicionales */
+  --success-bg: #10b981;
+  --success-hover: #059669;
+  --success-text: #4caf50;
+  --success-light: rgba(16, 185, 129, 0.15);
+  --warning-bg: #ffc107;
+  --warning-hover: #e0a800;
+  --warning-text: #ffc107;
+  --warning-light: rgba(255, 193, 7, 0.15);
+  --info-bg: #3ea6ff;
+  --info-hover: #2d8ce8;
+  --overlay-bg: rgba(0, 0, 0, 0.7);
+  --btn-text: #ffffff;
+}
+
+/* ===== APLICACIÓN GLOBAL ===== */
+html {
+  transition: background-color 0.5s ease, color 0.5s ease;
+}
+
+html.dark-theme {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html.dark-theme body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+}
+
+html.light-theme {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+html.light-theme body {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+/* Transiciones suaves para todos los elementos */
+* {
+  transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease;
+}
+
+/* Excepciones para elementos que no necesitan transición */
+button, a, input[type="button"], input[type="submit"] {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+/* Mejoras globales para inputs */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+textarea,
+select {
+  transition: all 0.3s ease;
+  color: var(--text-primary) !important;
+}
+
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="password"]:hover,
+input[type="number"]:hover,
+input[type="date"]:hover,
+input[type="time"]:hover,
+textarea:hover,
+select:hover {
+  border-color: var(--border-hover);
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus,
+input[type="date"]:focus,
+input[type="time"]:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 2px rgba(62, 166, 255, 0.15);
+  background: var(--input-bg) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Corregir autocompletar de Google en todos los inputs */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+textarea:-webkit-autofill:active,
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+select:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--input-bg) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary) !important;
+  border-color: var(--input-border) !important;
+}
+
+/* Scrollbar para modo oscuro */
+html.dark-theme ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+html.dark-theme ::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+
+html.dark-theme ::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 5px;
+}
+
+html.dark-theme ::-webkit-scrollbar-thumb:hover {
+  background: var(--border-hover);
+}

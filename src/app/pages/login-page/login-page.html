@@ -1,0 +1,41 @@
+<section class="login-container">
+
+  <h2>Iniciar Sesión</h2>
+
+  <form [formGroup]="form" (ngSubmit)="onSubmit()">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Email</mat-label>
+      <input matInput type="email" formControlName="email" placeholder="ejemplo@correo.com">
+      @if (submitted && form.controls['email'].invalid) {
+        <mat-error>
+          @if (form.controls['email'].errors?.['required']) { Email obligatorio }
+          @if (form.controls['email'].errors?.['email']) { Formato inválido }
+        </mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>Contraseña</mat-label>
+      <input matInput type="password" formControlName="password">
+      @if (submitted && form.controls['password'].invalid) {
+        <mat-error>Contraseña obligatoria</mat-error>
+      }
+    </mat-form-field>
+
+    <button mat-raised-button color="primary" class="full-width" type="submit" [disabled]="loading()">
+      @if (!loading()) { Iniciar sesión }
+      @if (loading()) { Cargando... }
+    </button>
+  </form>
+
+  <p class="register-link">
+    ¿No tenés cuenta?
+    <a routerLink="/auth/register">Registrarme</a>
+  </p>
+
+  @if (errorMessage()) {
+    <p class="error-message">{{ errorMessage() }}</p>
+  }
+
+</section>

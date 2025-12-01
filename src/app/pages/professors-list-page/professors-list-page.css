@@ -1,0 +1,376 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+  transition: background 0.3s ease;
+}
+
+/* === CONTENEDOR PRINCIPAL === */
+.professors-container {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.professors-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.professors-header__title {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  transition: color 0.3s ease;
+}
+
+/* === BÚSQUEDA === */
+.search-section {
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: var(--bg-card);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--border-color);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.search-section form {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text-primary);
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.search-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--input-focus);
+  box-shadow: 0 0 0 3px rgba(62, 166, 255, 0.1);
+}
+
+.search-button,
+.clear-button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.search-button {
+  background: var(--btn-primary-bg);
+  color: var(--btn-text);
+}
+
+.search-button:hover {
+  background: var(--btn-primary-hover);
+}
+
+.clear-button {
+  background: var(--btn-secondary-bg);
+  color: var(--btn-text);
+}
+
+.clear-button:hover {
+  background: var(--btn-secondary-hover);
+}
+
+/* === GRID === */
+.professors-grid {
+  display: grid;
+  gap: 1.75rem;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+}
+
+.empty-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 1.25rem;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+  padding: 4rem 0;
+}
+
+/* === TARJETA PROFESOR === */
+.professor-card {
+  background: var(--bg-card);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+  transition: all 0.25s ease;
+  border: 1px solid var(--border-color);
+}
+
+.professor-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  background: var(--bg-hover);
+}
+
+.professor-card__header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 1.5rem 1rem;
+}
+
+.professor-card__avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid var(--border-color);
+  transition: border-color 0.3s ease;
+}
+
+.professor-card__avatar-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  color: white;
+  font-weight: bold;
+  font-size: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.professor-card__name {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  transition: color 0.3s ease;
+}
+
+.professor-card__email {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0.25rem 0 0;
+  transition: color 0.3s ease;
+}
+
+.professor-card__body {
+  padding: 0 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.professor-card__detail {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  transition: color 0.3s ease;
+}
+
+.badge {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.badge--admin {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--btn-danger-bg);
+  transition: all 0.3s ease;
+}
+
+.badge--professor {
+  background: var(--success-light);
+  color: var(--success-text);
+  transition: all 0.3s ease;
+}
+
+.professor-card__actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-tertiary);
+  transition: background 0.3s ease, border-color 0.3s ease;
+}
+
+.btn-edit {
+  flex: 1;
+  padding: 0.6rem 1rem;
+  background: var(--btn-primary-bg);
+  color: var(--btn-text);
+  border: none;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-edit:hover {
+  background: var(--btn-primary-hover);
+}
+
+.btn {
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+}
+
+.btn--danger {
+  background: var(--btn-danger-bg);
+  color: var(--btn-text);
+  flex: 1;
+}
+
+.btn--danger:hover {
+  background: var(--btn-danger-hover);
+}
+
+.current-user-label {
+  flex: 1;
+  text-align: center;
+  font-weight: bold;
+  color: var(--btn-primary-bg);
+  padding: 0.6rem 1rem;
+  background-color: rgba(62, 166, 255, 0.15);
+  border-radius: 0.5rem;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+/* === SPINNER Y ALERTAS === */
+.spinner-container {
+  display: flex;
+  justify-content: center;
+  padding: 4rem 0;
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 4px solid var(--bg-tertiary);
+  border-top: 4px solid var(--btn-primary-bg);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.alert--error {
+  background: rgba(239, 68, 68, 0.15);
+  color: var(--btn-danger-bg);
+  padding: 1rem 1.5rem;
+  border-radius: 0.75rem;
+  text-align: center;
+  border: 1px solid var(--btn-danger-bg);
+  transition: all 0.3s ease;
+}
+
+/* === PAGINACIÓN === */
+.pagination {
+  margin: 2rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+}
+
+.pagination--bottom {
+  margin-top: 3rem;
+}
+
+.pagination-btn {
+  padding: 0.6rem 1.2rem;
+  background: var(--btn-secondary-bg);
+  color: var(--btn-text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--btn-secondary-hover);
+  transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+  background: var(--btn-secondary-bg);
+  color: var(--text-tertiary);
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.6;
+}
+
+.pagination-info {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 0 0.75rem;
+  transition: color 0.3s ease;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .professors-container {
+    padding: 1rem;
+  }
+
+  .professors-header__title {
+    font-size: 1.75rem;
+  }
+
+  .search-section form {
+    flex-direction: column;
+  }
+
+  .search-input {
+    width: 100%;
+  }
+
+  .search-button,
+  .clear-button {
+    width: 100%;
+  }
+
+  .professors-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+  }
+}
