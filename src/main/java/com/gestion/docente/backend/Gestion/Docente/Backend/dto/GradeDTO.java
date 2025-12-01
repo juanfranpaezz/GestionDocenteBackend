@@ -13,10 +13,12 @@ import lombok.NoArgsConstructor;
 public class GradeDTO {
     private Long id;
     
-    @NotNull(message = "La nota es obligatoria")
-    @DecimalMin(value = "0.0", message = "La nota no puede ser menor a 0")
-    @DecimalMax(value = "10.0", message = "La nota no puede ser mayor a 10")
+    // grade es opcional si hay gradeValue (notas categóricas)
+    @DecimalMin(value = "0.0", message = "La nota no puede ser menor a 0", inclusive = true)
+    @DecimalMax(value = "10.0", message = "La nota no puede ser mayor a 10", inclusive = true)
     private Double grade;
+    
+    private String gradeValue; // Para notas categóricas (ej: "aprobado", "distinguido")
     
     // El courseId es necesario para asociar la nota a un curso.
     // El ownership del curso se valida automáticamente (el curso debe pertenecer al profesor del JWT).

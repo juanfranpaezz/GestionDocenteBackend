@@ -24,6 +24,9 @@ public class AttendanceServiceImpl implements AttendanceService {
     @Autowired
     private CourseRepository courseRepository;
     
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.repository.StudentRepository studentRepository;
+    
     @Override
     public List<AttendanceDTO> getAttendancesByCourse(Long courseId) {
         // Validar ownership: el curso debe pertenecer al profesor autenticado
@@ -116,6 +119,91 @@ public class AttendanceServiceImpl implements AttendanceService {
         return (double) presentCount / attendances.size() * 100.0;
     }
     
+    @Override
+    public List<com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceAverageDTO> getAttendanceAverages(Long courseId, Long subjectId) {
+        validateCourseOwnership(courseId);
+        
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.Student> students = 
+            studentRepository.findByCourseId(courseId);
+        
+        return students.stream()
+                .map(student -> {
+                    // Filtrar por materia si se proporciona
+                    List<Attendance> attendances;
+                    if (subjectId != null) {
+                        attendances = attendanceRepository.findByStudentIdAndCourseIdAndSubjectId(
+                                student.getId(), courseId, subjectId);
+                    } else {
+                        attendances = attendanceRepository.findByStudentIdAndCourseId(
+                                student.getId(), courseId);
+                    }
+                    
+                    int totalDays = attendances.size();
+                    int presentDays = (int) attendances.stream()
+                            .filter(Attendance::getPresent)
+                            .count();
+                    int absentDays = totalDays - presentDays;
+                    
+                    Double percentage = null;
+                    if (totalDays > 0) {
+                        percentage = (double) presentDays / totalDays * 100.0;
+                    }
+                    
+                    com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceAverageDTO dto = 
+                        new com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceAverageDTO();
+                    dto.setStudentId(student.getId());
+                    dto.setFirstName(student.getFirstName());
+                    dto.setLastName(student.getLastName());
+                    dto.setAttendancePercentage(percentage);
+                    dto.setTotalDays(totalDays);
+                    dto.setPresentDays(presentDays);
+                    dto.setAbsentDays(absentDays);
+                    
+                    return dto;
+                })
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<AttendanceDTO> saveAttendancesBulk(List<AttendanceDTO> attendancesDTO) {
+        if (attendancesDTO == null || attendancesDTO.isEmpty()) {
+            throw new IllegalArgumentException("La lista de asistencias no puede estar vacía");
+        }
+        
+        // Validar ownership del primer curso (todos deben ser del mismo curso)
+        Long courseId = attendancesDTO.get(0).getCourseId();
+        validateCourseOwnership(courseId);
+        
+        // Validar que todos sean del mismo curso
+        for (AttendanceDTO dto : attendancesDTO) {
+            if (!courseId.equals(dto.getCourseId())) {
+                throw new IllegalArgumentException("Todas las asistencias deben ser del mismo curso");
+            }
+        }
+        
+        List<Attendance> attendances = attendancesDTO.stream()
+                .map(this::convertToEntity)
+                .collect(Collectors.toList());
+        
+        // Log para depuración
+        System.out.println("📝 Guardando " + attendances.size() + " asistencias");
+        attendances.forEach(att -> {
+            System.out.println("  - Asistencia - studentId: " + att.getStudentId() + ", date: " + att.getDate() + ", subjectId: " + att.getSubjectId());
+        });
+        
+        List<Attendance> saved = attendanceRepository.saveAll(attendances);
+        attendanceRepository.flush(); // Forzar flush para asegurar persistencia
+        
+        System.out.println("✅ Asistencias guardadas - total: " + saved.size());
+        saved.forEach(att -> {
+            System.out.println("  - Guardada - id: " + att.getId() + ", studentId: " + att.getStudentId() + ", subjectId: " + att.getSubjectId());
+        });
+        
+        return saved.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
     /**
      * Valida que un curso pertenezca al profesor autenticado.
      * 
@@ -142,6 +230,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         dto.setPresent(attendance.getPresent());
         dto.setCourseId(attendance.getCourseId());
         dto.setStudentId(attendance.getStudentId());
+        dto.setSubjectId(attendance.getSubjectId()); // Agregar subjectId
         return dto;
     }
     
@@ -155,6 +244,7 @@ public class AttendanceServiceImpl implements AttendanceService {
         attendance.setPresent(dto.getPresent());
         attendance.setCourseId(dto.getCourseId());
         attendance.setStudentId(dto.getStudentId());
+        attendance.setSubjectId(dto.getSubjectId()); // Agregar subjectId
         return attendance;
     }
 }

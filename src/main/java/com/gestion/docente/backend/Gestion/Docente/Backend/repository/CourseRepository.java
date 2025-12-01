@@ -14,5 +14,13 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     List<Course> findByProfessorId(Long professorId);
     
     Page<Course> findByProfessorId(Long professorId, Pageable pageable);
+    
+    List<Course> findByProfessorIdAndArchived(Long professorId, Boolean archived);
+    
+    Page<Course> findByProfessorIdAndArchived(Long professorId, Boolean archived, Pageable pageable);
+    
+    List<Course> findByProfessorIdAndArchivedAndNameContainingIgnoreCase(Long professorId, Boolean archived, String name);
+    
+    List<Course> findByProfessorIdAndArchivedAndSchoolContainingIgnoreCase(Long professorId, Boolean archived, String school);
 }
 

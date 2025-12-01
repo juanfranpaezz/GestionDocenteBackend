@@ -1,5 +1,12 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.service.impl;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.StudentDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Course;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Student;
@@ -7,12 +14,6 @@ import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepo
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.StudentRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.security.SecurityUtils;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.StudentService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Implementación del servicio de estudiantes.
@@ -68,11 +69,20 @@ public class StudentServiceImpl implements StudentService {
             throw new IllegalArgumentException("El nombre del estudiante es obligatorio");
         }
         
-        // 4. Convertir DTO a entidad
+        // 4. Capitalizar nombres y apellidos
+        if (studentDTO.getFirstName() != null) {
+            studentDTO.setFirstName(capitalizeName(studentDTO.getFirstName()));
+        }
+        if (studentDTO.getLastName() != null) {
+            studentDTO.setLastName(capitalizeName(studentDTO.getLastName()));
+        }
+        
+        // 5. Convertir DTO a entidad
         Student student = convertToEntity(studentDTO);
         
-        // 5. Guardar en la base de datos
+        // 6. Guardar en la base de datos
         Student savedStudent = studentRepository.save(student);
+        studentRepository.flush(); // Forzar flush para asegurar persistencia
         
         // 6. Convertir a DTO y retornar
         return convertToDTO(savedStudent);
@@ -105,12 +115,12 @@ public class StudentServiceImpl implements StudentService {
             }
         }
         
-        // 5. Actualizar los campos del estudiante
+        // 5. Actualizar los campos del estudiante (capitalizando nombres)
         if (studentDTO.getFirstName() != null) {
-            existingStudent.setFirstName(studentDTO.getFirstName());
+            existingStudent.setFirstName(capitalizeName(studentDTO.getFirstName()));
         }
         if (studentDTO.getLastName() != null) {
-            existingStudent.setLastName(studentDTO.getLastName());
+            existingStudent.setLastName(capitalizeName(studentDTO.getLastName()));
         }
         if (studentDTO.getCel() != null) {
             existingStudent.setCel(studentDTO.getCel());
@@ -166,6 +176,86 @@ public class StudentServiceImpl implements StudentService {
         dto.setDocument(student.getDocument());
         dto.setCourseId(student.getCourseId());
         return dto;
+    }
+    
+    @Override
+    public List<StudentDTO> importStudents(Long courseId, List<StudentDTO> students) {
+        // 1. Obtener el profesor autenticado desde el JWT
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        
+        // 2. Validar que el curso exista y pertenezca al profesor autenticado
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + courseId + " no existe"));
+        
+        if (!course.getProfessorId().equals(currentProfessorId)) {
+            throw new IllegalArgumentException("No puede agregar estudiantes a cursos de otros profesores");
+        }
+        
+        // 3. Validar y convertir estudiantes
+        List<Student> studentsToSave = students.stream()
+                .map(dto -> {
+                    // Validar que tenga nombre (obligatorio)
+                    if (dto.getFirstName() == null || dto.getFirstName().trim().isEmpty()) {
+                        throw new IllegalArgumentException("Todos los estudiantes deben tener un nombre");
+                    }
+                    
+                    Student student = new Student();
+                    student.setFirstName(dto.getFirstName() != null ? capitalizeName(dto.getFirstName()) : null);
+                    student.setLastName(dto.getLastName() != null ? capitalizeName(dto.getLastName()) : null);
+                    student.setCel(dto.getCel());
+                    student.setEmail(dto.getEmail());
+                    student.setDocument(dto.getDocument());
+                    student.setCourseId(courseId);
+                    return student;
+                })
+                .collect(Collectors.toList());
+        
+        // 4. Guardar todos los estudiantes
+        List<Student> savedStudents = studentRepository.saveAll(studentsToSave);
+        studentRepository.flush(); // Forzar flush para asegurar persistencia
+        
+        // 5. Convertir a DTOs y retornar
+        return savedStudents.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Capitaliza un nombre o apellido (Title Case)
+     * Ejemplo: "juan perez" -> "Juan Perez"
+     */
+    private String capitalizeName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return name;
+        }
+        
+        String trimmed = name.trim();
+        if (trimmed.isEmpty()) {
+            return trimmed;
+        }
+        
+        // Dividir por espacios y capitalizar cada palabra
+        String[] words = trimmed.split("\\s+");
+        StringBuilder result = new StringBuilder();
+        
+        for (int i = 0; i < words.length; i++) {
+            if (words[i].isEmpty()) continue;
+            
+            // Capitalizar primera letra y poner el resto en minúscula
+            String word = words[i];
+            if (word.length() == 1) {
+                result.append(word.toUpperCase());
+            } else {
+                result.append(word.substring(0, 1).toUpperCase())
+                      .append(word.substring(1).toLowerCase());
+            }
+            
+            if (i < words.length - 1) {
+                result.append(" ");
+            }
+        }
+        
+        return result.toString();
     }
     
     /**

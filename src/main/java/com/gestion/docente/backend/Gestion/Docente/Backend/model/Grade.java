@@ -18,6 +18,9 @@ public class Grade {
     
     private Double grade; // Puede ser null si el estudiante aún no fue evaluado
     
+    @Column(nullable = true, length = 50)
+    private String gradeValue; // Para notas categóricas (ej: "aprobado", "distinguido")
+    
     @Column(nullable = false)
     private Long courseId;
     

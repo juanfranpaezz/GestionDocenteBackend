@@ -19,7 +19,7 @@ public class StudentDTO {
     
     private String lastName;
     
-    @Pattern(regexp = "^[0-9]{10,15}$", message = "El celular debe contener entre 10 y 15 dígitos numéricos")
+    @Pattern(regexp = "^[0-9]{10,15}$|^$", message = "El celular debe contener entre 10 y 15 dígitos numéricos")
     private String cel;
     
     @NotBlank(message = "El email del estudiante es obligatorio")

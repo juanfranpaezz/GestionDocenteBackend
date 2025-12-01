@@ -19,5 +19,17 @@ public interface CourseService {
     CourseDTO updateCourse(Long id, CourseDTO courseDTO);
     
     void deleteCourse(Long id);
+    
+    CourseDTO archiveCourse(Long id);
+    
+    CourseDTO unarchiveCourse(Long id);
+    
+    List<CourseDTO> getArchivedCourses();
+    
+    CourseDTO duplicateCourse(Long id, com.gestion.docente.backend.Gestion.Docente.Backend.dto.DuplicateCourseDTO options);
+    
+    List<CourseDTO> searchCourses(String searchQuery, Boolean archived);
+    
+    void sendPersonalizedMessageToAllStudents(Long courseId, com.gestion.docente.backend.Gestion.Docente.Backend.dto.SendPersonalizedMessageDTO messageDTO);
 }
 

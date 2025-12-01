@@ -18,5 +18,8 @@ public interface EvaluationRepository extends JpaRepository<Evaluation, Long> {
     
     // Buscar evaluación por curso, nombre y fecha (para validar duplicados)
     boolean existsByCourseIdAndNombreAndDate(Long courseId, String nombre, java.time.LocalDate date);
+    
+    // Buscar evaluaciones que usan una escala de notas
+    List<Evaluation> findByGradeScaleId(Long gradeScaleId);
 }
 

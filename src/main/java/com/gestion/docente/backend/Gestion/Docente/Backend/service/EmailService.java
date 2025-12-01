@@ -13,5 +13,12 @@ public interface EmailService {
     void sendVerificationEmail(String email, String name, String verificationToken);
     
     void sendEvaluationGradeEmail(String studentEmail, String studentName, String evaluationName, String courseName, Double grade);
+    
+    void sendEvaluationGradeEmailWithTemplate(String studentEmail, String studentName, String evaluationName, 
+                                               String courseName, Double grade, String gradeValue, 
+                                               Long templateId, String customMessage, String professorEmail, String professorName);
+    
+    void sendPersonalizedMessageToAllStudents(String studentEmail, String studentName, String courseName, 
+                                               String subject, String message, String professorName, String professorEmail);
 }
 

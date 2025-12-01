@@ -136,5 +136,98 @@ public class CourseController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+    
+    @PostMapping("/{id}/archive")
+    public ResponseEntity<?> archiveCourse(@PathVariable Long id) {
+        try {
+            CourseDTO archived = courseService.archiveCourse(id);
+            return ResponseEntity.ok(archived);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/{id}/unarchive")
+    public ResponseEntity<?> unarchiveCourse(@PathVariable Long id) {
+        try {
+            CourseDTO unarchived = courseService.unarchiveCourse(id);
+            return ResponseEntity.ok(unarchived);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping("/archived")
+    public ResponseEntity<?> getArchivedCourses() {
+        try {
+            List<CourseDTO> courses = courseService.getArchivedCourses();
+            return ResponseEntity.ok(courses);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al obtener cursos archivados: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    @PostMapping("/{id}/duplicate")
+    public ResponseEntity<?> duplicateCourse(
+            @PathVariable Long id,
+            @RequestBody com.gestion.docente.backend.Gestion.Docente.Backend.dto.DuplicateCourseDTO options) {
+        try {
+            CourseDTO duplicated = courseService.duplicateCourse(id, options);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Curso duplicado exitosamente");
+            response.put("newCourseId", duplicated.getId());
+            response.put("newCourseName", duplicated.getName());
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @GetMapping(params = {"search"})
+    public ResponseEntity<?> searchCourses(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean archived) {
+        try {
+            List<CourseDTO> courses = courseService.searchCourses(search, archived);
+            return ResponseEntity.ok(courses);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al buscar cursos: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * POST /api/courses/{id}/send-personalized-message
+     * Envía un mensaje personalizado a todos los estudiantes del curso.
+     * El curso debe pertenecer al profesor autenticado (obtenido del JWT).
+     */
+    @PostMapping("/{id}/send-personalized-message")
+    public ResponseEntity<?> sendPersonalizedMessage(
+            @PathVariable Long id,
+            @Valid @RequestBody com.gestion.docente.backend.Gestion.Docente.Backend.dto.SendPersonalizedMessageDTO messageDTO) {
+        try {
+            courseService.sendPersonalizedMessageToAllStudents(id, messageDTO);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Mensajes enviados exitosamente a todos los estudiantes del curso");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al enviar los mensajes: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }
 

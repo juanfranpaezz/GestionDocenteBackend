@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -105,6 +106,28 @@ public class EvaluationController {
     }
     
     /**
+     * PUT /api/evaluations/{id}
+     * Actualiza una evaluación existente
+     */
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateEvaluation(
+            @PathVariable Long id,
+            @Valid @RequestBody EvaluationDTO evaluationDTO) {
+        try {
+            EvaluationDTO updated = evaluationService.updateEvaluation(id, evaluationDTO);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al actualizar la evaluación: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
      * POST /api/evaluations/{id}/send-grades
      * Envía las notas de una evaluación por email a todos los alumnos
      */
@@ -123,6 +146,49 @@ public class EvaluationController {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al enviar las notas por email: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * POST /api/evaluations/{id}/send-grades-custom
+     * Envía las notas de una evaluación por email con mensaje personalizado
+     */
+    @PostMapping("/{id}/send-grades-custom")
+    public ResponseEntity<?> sendGradesByEmailCustom(
+            @PathVariable Long id,
+            @RequestBody com.gestion.docente.backend.Gestion.Docente.Backend.dto.SendGradesCustomDTO sendDTO) {
+        try {
+            evaluationService.sendGradesByEmailCustom(id, sendDTO);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Emails enviados exitosamente");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al enviar las notas por email: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * PUT /api/evaluations/{id}/grade-scale
+     * Asigna una escala de notas a una evaluación
+     */
+    @PutMapping("/{id}/grade-scale")
+    public ResponseEntity<?> updateEvaluationGradeScale(
+            @PathVariable Long id,
+            @RequestBody Map<String, Long> request) {
+        try {
+            Long gradeScaleId = request.get("gradeScaleId");
+            EvaluationDTO updated = evaluationService.updateEvaluationGradeScale(id, gradeScaleId);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
         }
     }
 }

@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.GradeDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.StudentAverageDTO;
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.StudentGroupedAveragesDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.GradeService;
 
 import jakarta.validation.Valid;
@@ -165,9 +166,12 @@ public class GradeController {
      * Calcula el promedio de notas de un estudiante en un curso.
      */
     @GetMapping("/student/{studentId}/course/{courseId}/average")
-    public ResponseEntity<?> calculateAverage(@PathVariable Long studentId, @PathVariable Long courseId) {
+    public ResponseEntity<?> calculateAverage(
+            @PathVariable Long studentId, 
+            @PathVariable Long courseId,
+            @RequestParam(required = false) Long subjectId) {
         try {
-            Double average = gradeService.calculateAverage(studentId, courseId);
+            Double average = gradeService.calculateAverage(studentId, courseId, subjectId);
             Map<String, Object> response = new HashMap<>();
             if (average != null) {
                 response.put("average", average);
@@ -187,6 +191,47 @@ public class GradeController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", "Error al calcular el promedio: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * GET /api/grades/student/{studentId}/course/{courseId}/grouped-averages
+     * Obtiene los promedios agrupados por tipo de evaluación para un estudiante en un curso.
+     * Calcula el promedio de cada grupo de evaluaciones del mismo tipo y el promedio final.
+     */
+    @GetMapping("/student/{studentId}/course/{courseId}/grouped-averages")
+    public ResponseEntity<?> getGroupedAverages(@PathVariable Long studentId, @PathVariable Long courseId) {
+        try {
+            StudentGroupedAveragesDTO result = gradeService.getGroupedAverages(studentId, courseId);
+            return ResponseEntity.ok(result);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al obtener los promedios agrupados: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+    
+    /**
+     * GET /api/grades/course/{courseId}/grouped-averages
+     * Obtiene los promedios agrupados por tipo de evaluación para todos los estudiantes de un curso.
+     */
+    @GetMapping("/course/{courseId}/grouped-averages")
+    public ResponseEntity<?> getGroupedAveragesByCourse(@PathVariable Long courseId) {
+        try {
+            List<StudentGroupedAveragesDTO> results = gradeService.getGroupedAveragesByCourse(courseId);
+            return ResponseEntity.ok(results);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al obtener los promedios agrupados: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }

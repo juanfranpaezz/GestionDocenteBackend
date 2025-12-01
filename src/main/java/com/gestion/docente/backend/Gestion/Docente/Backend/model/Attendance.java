@@ -30,6 +30,9 @@ public class Attendance {
     @Column(nullable = false)
     private Long studentId;
     
+    @Column(nullable = true)
+    private Long subjectId; // Relación con Subject (nullable para compatibilidad)
+    
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "courseId", insertable = false, updatable = false)
     private Course course;
@@ -37,5 +40,9 @@ public class Attendance {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "studentId", insertable = false, updatable = false)
     private Student student;
+    
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subjectId", insertable = false, updatable = false)
+    private Subject subject;
 }
 

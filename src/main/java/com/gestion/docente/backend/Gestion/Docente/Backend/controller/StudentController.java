@@ -105,4 +105,31 @@ public class StudentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+    
+    /**
+     * POST /api/students/import/{courseId}
+     * Importa múltiples estudiantes a un curso desde una lista.
+     * El curso debe pertenecer al profesor autenticado (obtenido del JWT).
+     */
+    @PostMapping("/import/{courseId}")
+    public ResponseEntity<?> importStudents(
+            @PathVariable Long courseId,
+            @RequestBody List<StudentDTO> students) {
+        try {
+            List<StudentDTO> importedStudents = studentService.importStudents(courseId, students);
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Estudiantes importados exitosamente");
+            response.put("count", importedStudents.size());
+            response.put("students", importedStudents);
+            return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al importar estudiantes: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
 }

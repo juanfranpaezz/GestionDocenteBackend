@@ -1,13 +1,17 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.service.impl;
 
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.GradeDTO;
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.GroupedAverageDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.StudentAverageDTO;
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.StudentGroupedAveragesDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Course;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation;
+import com.gestion.docente.backend.Gestion.Docente.Backend.model.EvaluationType;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Grade;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Student;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.EvaluationRepository;
+import com.gestion.docente.backend.Gestion.Docente.Backend.repository.EvaluationTypeRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.GradeRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.StudentRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.security.SecurityUtils;
@@ -42,6 +46,12 @@ public class GradeServiceImpl implements GradeService {
     
     @Autowired
     private CourseRepository courseRepository;
+    
+    @Autowired
+    private EvaluationTypeRepository evaluationTypeRepository;
+    
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.repository.GradeScaleOptionRepository gradeScaleOptionRepository;
     
     @Override
     public List<GradeDTO> getGradesByCourse(Long courseId) {
@@ -128,7 +138,7 @@ public class GradeServiceImpl implements GradeService {
     }
     
     @Override
-    public Double calculateAverage(Long studentId, Long courseId) {
+    public Double calculateAverage(Long studentId, Long courseId, Long subjectId) {
         // Validar ownership: el curso debe pertenecer al profesor autenticado
         validateCourseOwnership(courseId);
         
@@ -140,11 +150,38 @@ public class GradeServiceImpl implements GradeService {
         // Obtener todas las notas del estudiante en el curso
         List<Grade> grades = gradeRepository.findByStudentIdAndCourseId(studentId, courseId);
         
-        // Filtrar solo las notas que tienen valor (no null)
-        List<Double> validGrades = grades.stream()
-                .filter(g -> g.getGrade() != null)
-                .map(Grade::getGrade)
-                .collect(Collectors.toList());
+        // Obtener todas las evaluaciones para acceder a sus escalas
+        List<Evaluation> evaluations = evaluationRepository.findByCourseId(courseId);
+        
+        // Filtrar evaluaciones por materia si se proporciona
+        if (subjectId != null) {
+            evaluations = evaluations.stream()
+                    .filter(eval -> subjectId.equals(eval.getSubjectId()))
+                    .collect(Collectors.toList());
+        }
+        
+        java.util.Map<Long, Evaluation> evalMap = evaluations.stream()
+                .collect(Collectors.toMap(Evaluation::getId, eval -> eval));
+        
+        // Filtrar notas solo de las evaluaciones de la materia (si se proporciona)
+        List<Grade> filteredGrades = grades;
+        if (subjectId != null) {
+            java.util.Set<Long> evaluationIds = evaluations.stream()
+                    .map(Evaluation::getId)
+                    .collect(Collectors.toSet());
+            filteredGrades = grades.stream()
+                    .filter(grade -> grade.getEvaluationId() != null && evaluationIds.contains(grade.getEvaluationId()))
+                    .collect(Collectors.toList());
+        }
+        
+        // Convertir notas a valores numéricos (incluyendo mapeo de escalas categóricas)
+        List<Double> validGrades = new ArrayList<>();
+        for (Grade grade : filteredGrades) {
+            Double numericValue = getNumericGradeValue(grade, evalMap);
+            if (numericValue != null) {
+                validGrades.add(numericValue);
+            }
+        }
         
         // Si no hay notas válidas, retornar null
         if (validGrades.isEmpty()) {
@@ -307,11 +344,19 @@ public class GradeServiceImpl implements GradeService {
                     List<Grade> studentGrades = gradeRepository.findByStudentIdAndCourseId(
                             student.getId(), courseId);
                     
-                    // Filtrar solo las notas que tienen valor (no null)
-                    List<Double> validGrades = studentGrades.stream()
-                            .filter(g -> g.getGrade() != null)
-                            .map(Grade::getGrade)
-                            .collect(Collectors.toList());
+                    // Obtener evaluaciones para mapeo de escalas
+                    List<Evaluation> evaluations = evaluationRepository.findByCourseId(courseId);
+                    java.util.Map<Long, Evaluation> evalMap = evaluations.stream()
+                            .collect(Collectors.toMap(Evaluation::getId, eval -> eval));
+                    
+                    // Convertir notas a valores numéricos (incluyendo mapeo de escalas)
+                    List<Double> validGrades = new ArrayList<>();
+                    for (Grade grade : studentGrades) {
+                        Double numericValue = getNumericGradeValue(grade, evalMap);
+                        if (numericValue != null) {
+                            validGrades.add(numericValue);
+                        }
+                    }
                     
                     // Calcular el promedio
                     Double average = null;
@@ -341,6 +386,7 @@ public class GradeServiceImpl implements GradeService {
         GradeDTO dto = new GradeDTO();
         dto.setId(grade.getId());
         dto.setGrade(grade.getGrade());
+        dto.setGradeValue(grade.getGradeValue());
         dto.setCourseId(grade.getCourseId());
         dto.setStudentId(grade.getStudentId());
         dto.setEvaluationId(grade.getEvaluationId());
@@ -354,10 +400,162 @@ public class GradeServiceImpl implements GradeService {
         Grade grade = new Grade();
         grade.setId(dto.getId()); // null para nuevas notas
         grade.setGrade(dto.getGrade());
+        grade.setGradeValue(dto.getGradeValue());
         grade.setCourseId(dto.getCourseId());
         grade.setStudentId(dto.getStudentId());
         grade.setEvaluationId(dto.getEvaluationId());
         return grade;
+    }
+    
+    @Override
+    public StudentGroupedAveragesDTO getGroupedAverages(Long studentId, Long courseId) {
+        // Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(courseId);
+        
+        // Validar que el estudiante exista
+        Student student = studentRepository.findById(studentId)
+                .orElseThrow(() -> new IllegalArgumentException("El estudiante con ID " + studentId + " no existe"));
+        
+        // Obtener todas las evaluaciones del curso
+        List<Evaluation> evaluations = evaluationRepository.findByCourseId(courseId);
+        
+        // Obtener todos los tipos de evaluación del curso
+        List<EvaluationType> evaluationTypes = evaluationTypeRepository.findByCourseId(courseId);
+        
+        // Crear un mapa de evaluationTypeId -> EvaluationType para acceso rápido
+        java.util.Map<Long, EvaluationType> typeMap = evaluationTypes.stream()
+                .collect(Collectors.toMap(EvaluationType::getId, type -> type));
+        
+        // Obtener todas las notas del estudiante en el curso
+        List<Grade> studentGrades = gradeRepository.findByStudentIdAndCourseId(studentId, courseId);
+        
+        // Crear un mapa de evaluationId -> Grade para acceso rápido (incluir todas las notas)
+        java.util.Map<Long, Grade> gradeMap = studentGrades.stream()
+                .filter(g -> g.getGrade() != null || g.getGradeValue() != null)
+                .collect(Collectors.toMap(Grade::getEvaluationId, grade -> grade));
+        
+        // Crear mapa de evaluaciones para acceder a escalas
+        java.util.Map<Long, Evaluation> evalMap = evaluations.stream()
+                .collect(Collectors.toMap(Evaluation::getId, eval -> eval));
+        
+        // Agrupar evaluaciones por tipo
+        java.util.Map<Long, List<Evaluation>> evaluationsByType = evaluations.stream()
+                .filter(e -> e.getEvaluationTypeId() != null)
+                .filter(e -> gradeMap.containsKey(e.getId())) // Solo evaluaciones con notas
+                .collect(Collectors.groupingBy(Evaluation::getEvaluationTypeId));
+        
+        // Calcular promedio por cada tipo
+        List<GroupedAverageDTO> groupedAverages = new ArrayList<>();
+        for (java.util.Map.Entry<Long, List<Evaluation>> entry : evaluationsByType.entrySet()) {
+            Long typeId = entry.getKey();
+            List<Evaluation> typeEvaluations = entry.getValue();
+            
+            EvaluationType type = typeMap.get(typeId);
+            if (type == null) continue;
+            
+            // Calcular promedio de las notas de este tipo (incluyendo mapeo de escalas)
+            List<Double> typeGrades = new ArrayList<>();
+            for (Evaluation eval : typeEvaluations) {
+                Grade grade = gradeMap.get(eval.getId());
+                if (grade != null) {
+                    Double numericValue = getNumericGradeValue(grade, evalMap);
+                    if (numericValue != null) {
+                        typeGrades.add(numericValue);
+                    }
+                }
+            }
+            
+            if (typeGrades.isEmpty()) continue;
+            
+            double typeAverage = typeGrades.stream().mapToDouble(Double::doubleValue).sum() / typeGrades.size();
+            
+            GroupedAverageDTO groupedAvg = new GroupedAverageDTO();
+            groupedAvg.setEvaluationTypeId(typeId);
+            groupedAvg.setEvaluationTypeName(type.getNombre());
+            groupedAvg.setAverage(typeAverage);
+            groupedAvg.setEvaluationsCount(typeEvaluations.size());
+            groupedAvg.setEvaluationIds(typeEvaluations.stream().map(Evaluation::getId).collect(Collectors.toList()));
+            
+            groupedAverages.add(groupedAvg);
+        }
+        
+        // Calcular promedio final usando pesos
+        Double finalAverage = null;
+        if (!groupedAverages.isEmpty()) {
+            // Calcular suma total de pesos
+            double totalWeight = 0.0;
+            double weightedSum = 0.0;
+            
+            for (GroupedAverageDTO groupedAvg : groupedAverages) {
+                EvaluationType type = typeMap.get(groupedAvg.getEvaluationTypeId());
+                double weight = (type != null && type.getWeight() != null) ? type.getWeight() : 100.0 / groupedAverages.size();
+                totalWeight += weight;
+                weightedSum += groupedAvg.getAverage() * weight;
+            }
+            
+            if (totalWeight > 0) {
+                finalAverage = weightedSum / totalWeight;
+            } else {
+                // Fallback a promedio simple si no hay pesos
+                double sum = groupedAverages.stream()
+                        .mapToDouble(GroupedAverageDTO::getAverage)
+                        .sum();
+                finalAverage = sum / groupedAverages.size();
+            }
+        }
+        
+        // Crear y retornar DTO
+        StudentGroupedAveragesDTO result = new StudentGroupedAveragesDTO();
+        result.setStudentId(student.getId());
+        result.setFirstName(student.getFirstName());
+        result.setLastName(student.getLastName());
+        result.setGroupedAverages(groupedAverages);
+        result.setFinalAverage(finalAverage);
+        
+        return result;
+    }
+    
+    @Override
+    public List<StudentGroupedAveragesDTO> getGroupedAveragesByCourse(Long courseId) {
+        // Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(courseId);
+        
+        // Obtener todos los estudiantes del curso
+        List<Student> students = studentRepository.findByCourseId(courseId);
+        
+        // Calcular promedios agrupados para cada estudiante
+        return students.stream()
+                .map(student -> getGroupedAverages(student.getId(), courseId))
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Obtiene el valor numérico de una nota, considerando mapeo de escalas categóricas
+     */
+    private Double getNumericGradeValue(Grade grade, java.util.Map<Long, Evaluation> evalMap) {
+        // Si tiene valor numérico directo, usarlo
+        if (grade.getGrade() != null) {
+            return grade.getGrade();
+        }
+        
+        // Si tiene valor categórico, buscar mapeo numérico
+        if (grade.getGradeValue() != null && grade.getEvaluationId() != null) {
+            Evaluation evaluation = evalMap.get(grade.getEvaluationId());
+            if (evaluation != null && evaluation.getGradeScaleId() != null) {
+                // Buscar la opción de escala que corresponde al gradeValue
+                List<com.gestion.docente.backend.Gestion.Docente.Backend.model.GradeScaleOption> options = 
+                    gradeScaleOptionRepository.findByGradeScaleIdOrderByOrderValueAsc(evaluation.getGradeScaleId());
+                
+                for (com.gestion.docente.backend.Gestion.Docente.Backend.model.GradeScaleOption option : options) {
+                    if (option.getLabel().equalsIgnoreCase(grade.getGradeValue()) && 
+                        option.getNumericValue() != null) {
+                        return option.getNumericValue();
+                    }
+                }
+            }
+        }
+        
+        return null;
     }
     
     /**

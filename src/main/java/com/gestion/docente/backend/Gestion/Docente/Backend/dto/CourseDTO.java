@@ -20,7 +20,15 @@ public class CourseDTO {
     
     private String description;
     
+    private Boolean archived;
+    
+    private java.time.LocalDateTime archivedDate;
+    
     // El professorId se obtiene automáticamente del JWT, no es necesario enviarlo
     private Long professorId;
+    
+    private Double approvalGrade; // Nota mínima para aprobar (default del curso)
+    
+    private Double qualificationGrade; // Nota mínima para habilitar (default del curso)
 }
 

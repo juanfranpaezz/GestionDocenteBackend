@@ -1,8 +1,8 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.service;
 
-import com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceDTO;
-
 import java.util.List;
+
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceDTO;
 
 public interface AttendanceService {
     
@@ -15,5 +15,9 @@ public interface AttendanceService {
     AttendanceDTO updateAttendance(Long id, AttendanceDTO attendanceDTO);
     
     Double calculateAttendancePercentage(Long studentId, Long courseId);
+    
+    List<com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceAverageDTO> getAttendanceAverages(Long courseId, Long subjectId);
+    
+    List<AttendanceDTO> saveAttendancesBulk(List<AttendanceDTO> attendances);
 }
 

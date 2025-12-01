@@ -49,5 +49,32 @@ public class AttendanceController {
         Double percentage = attendanceService.calculateAttendancePercentage(studentId, courseId);
         return ResponseEntity.ok(percentage);
     }
+    
+    @GetMapping("/course/{courseId}/averages")
+    public ResponseEntity<?> getAttendanceAverages(
+            @PathVariable Long courseId,
+            @RequestParam(required = false) Long subjectId) {
+        try {
+            List<com.gestion.docente.backend.Gestion.Docente.Backend.dto.AttendanceAverageDTO> averages = 
+                attendanceService.getAttendanceAverages(courseId, subjectId);
+            return ResponseEntity.ok(averages);
+        } catch (IllegalArgumentException e) {
+            java.util.Map<String, String> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    @PostMapping("/bulk")
+    public ResponseEntity<?> saveAttendancesBulk(@RequestBody List<AttendanceDTO> attendances) {
+        try {
+            List<AttendanceDTO> saved = attendanceService.saveAttendancesBulk(attendances);
+            return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        } catch (IllegalArgumentException e) {
+            java.util.Map<String, String> error = new java.util.HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
 }
 

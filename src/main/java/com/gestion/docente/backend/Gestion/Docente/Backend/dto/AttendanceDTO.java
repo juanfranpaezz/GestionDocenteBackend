@@ -19,5 +19,7 @@ public class AttendanceDTO {
     private Long courseId;
     
     private Long studentId;
+    
+    private Long subjectId; // ID de la materia (nullable para compatibilidad)
 }
 

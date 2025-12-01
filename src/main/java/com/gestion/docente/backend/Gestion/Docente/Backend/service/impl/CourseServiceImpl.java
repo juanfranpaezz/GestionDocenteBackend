@@ -29,6 +29,24 @@ public class CourseServiceImpl implements CourseService {
     @Autowired
     private ProfessorRepository professorRepository;
     
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.repository.StudentRepository studentRepository;
+    
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.repository.EvaluationTypeRepository evaluationTypeRepository;
+    
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.repository.EvaluationRepository evaluationRepository;
+    
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseScheduleRepository courseScheduleRepository;
+    
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.service.EmailService emailService;
+    
+    @Autowired
+    private com.gestion.docente.backend.Gestion.Docente.Backend.repository.SubjectRepository subjectRepository;
+    
     @Override
     public CourseDTO createCourse(CourseDTO courseDTO) {
         // 1. Validar que el usuario NO sea administrador
@@ -57,7 +75,14 @@ public class CourseServiceImpl implements CourseService {
         // 7. Guardar en la base de datos
         Course savedCourse = courseRepository.save(course);
         
-        // 8. Convertir a DTO y retornar
+        // 8. Crear automáticamente una materia default sin nombre para el curso
+        com.gestion.docente.backend.Gestion.Docente.Backend.model.Subject defaultSubject = 
+            new com.gestion.docente.backend.Gestion.Docente.Backend.model.Subject();
+        defaultSubject.setName(null); // Materia sin nombre, el profesor puede renombrarla después
+        defaultSubject.setCourseId(savedCourse.getId());
+        subjectRepository.save(defaultSubject);
+        
+        // 9. Convertir a DTO y retornar
         return convertToDTO(savedCourse);
     }
     
@@ -66,9 +91,9 @@ public class CourseServiceImpl implements CourseService {
         // Validar que el usuario NO sea administrador
         SecurityUtils.validateNotAdmin();
         
-        // Obtener el profesor autenticado y filtrar solo sus cursos
+        // Obtener el profesor autenticado y filtrar solo sus cursos NO archivados
         Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
-        List<Course> courses = courseRepository.findByProfessorId(currentProfessorId);
+        List<Course> courses = courseRepository.findByProfessorIdAndArchived(currentProfessorId, false);
         
         // Convertir a DTOs y retornar
         return courses.stream()
@@ -136,6 +161,12 @@ public class CourseServiceImpl implements CourseService {
         existingCourse.setName(courseDTO.getName());
         existingCourse.setSchool(courseDTO.getSchool());
         existingCourse.setDescription(courseDTO.getDescription());
+        if (courseDTO.getApprovalGrade() != null) {
+            existingCourse.setApprovalGrade(courseDTO.getApprovalGrade());
+        }
+        if (courseDTO.getQualificationGrade() != null) {
+            existingCourse.setQualificationGrade(courseDTO.getQualificationGrade());
+        }
         // El professorId no se cambia, se mantiene el original
         
         // 7. Guardar los cambios
@@ -166,6 +197,190 @@ public class CourseServiceImpl implements CourseService {
         courseRepository.deleteById(id);
     }
     
+    @Override
+    public CourseDTO archiveCourse(Long id) {
+        validateCourseOwnership(id);
+        
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + id + " no existe"));
+        
+        course.setArchived(true);
+        course.setArchivedDate(java.time.LocalDateTime.now());
+        
+        Course saved = courseRepository.save(course);
+        return convertToDTO(saved);
+    }
+    
+    @Override
+    public CourseDTO unarchiveCourse(Long id) {
+        validateCourseOwnership(id);
+        
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + id + " no existe"));
+        
+        course.setArchived(false);
+        course.setArchivedDate(null);
+        
+        Course saved = courseRepository.save(course);
+        return convertToDTO(saved);
+    }
+    
+    @Override
+    public List<CourseDTO> getArchivedCourses() {
+        SecurityUtils.validateNotAdmin();
+        
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        List<Course> courses = courseRepository.findByProfessorIdAndArchived(currentProfessorId, true);
+        
+        return courses.stream()
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public CourseDTO duplicateCourse(Long id, com.gestion.docente.backend.Gestion.Docente.Backend.dto.DuplicateCourseDTO options) {
+        validateCourseOwnership(id);
+        
+        Course original = courseRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + id + " no existe"));
+        
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        
+        // Crear nuevo curso
+        Course newCourse = new Course();
+        newCourse.setName(original.getName() + " - Copia");
+        newCourse.setSchool(original.getSchool());
+        newCourse.setDescription(original.getDescription());
+        newCourse.setProfessorId(currentProfessorId);
+        newCourse.setArchived(false);
+        newCourse.setArchivedDate(null);
+        
+        Course savedCourse = courseRepository.save(newCourse);
+        
+        // Copiar según opciones
+        if (Boolean.TRUE.equals(options.getCopyStudents())) {
+            copyStudents(original.getId(), savedCourse.getId());
+        }
+        
+        if (Boolean.TRUE.equals(options.getCopyEvaluationTypes())) {
+            copyEvaluationTypes(original.getId(), savedCourse.getId());
+        }
+        
+        if (Boolean.TRUE.equals(options.getCopyEvaluations())) {
+            copyEvaluations(original.getId(), savedCourse.getId());
+        }
+        
+        if (Boolean.TRUE.equals(options.getCopySchedules())) {
+            copySchedules(original.getId(), savedCourse.getId());
+        }
+        
+        return convertToDTO(savedCourse);
+    }
+    
+    @Override
+    public List<CourseDTO> searchCourses(String searchQuery, Boolean archived) {
+        SecurityUtils.validateNotAdmin();
+        
+        Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
+        Boolean archivedValue = (archived != null) ? archived : false;
+        
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            return courseRepository.findByProfessorIdAndArchived(currentProfessorId, archivedValue).stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        }
+        
+        String query = searchQuery.trim().toLowerCase();
+        List<Course> courses = courseRepository.findByProfessorIdAndArchived(currentProfessorId, archivedValue);
+        
+        return courses.stream()
+                .filter(course -> 
+                    course.getName().toLowerCase().contains(query) || 
+                    course.getSchool().toLowerCase().contains(query)
+                )
+                .map(this::convertToDTO)
+                .collect(Collectors.toList());
+    }
+    
+    private void copyStudents(Long originalCourseId, Long newCourseId) {
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.Student> originalStudents = 
+            studentRepository.findByCourseId(originalCourseId);
+        
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.Student> newStudents = originalStudents.stream()
+            .map(original -> {
+                com.gestion.docente.backend.Gestion.Docente.Backend.model.Student newStudent = 
+                    new com.gestion.docente.backend.Gestion.Docente.Backend.model.Student();
+                newStudent.setFirstName(original.getFirstName());
+                newStudent.setLastName(original.getLastName());
+                newStudent.setEmail(original.getEmail());
+                newStudent.setCel(original.getCel());
+                newStudent.setCourseId(newCourseId);
+                return newStudent;
+            })
+            .collect(Collectors.toList());
+        
+        studentRepository.saveAll(newStudents);
+    }
+    
+    private void copyEvaluationTypes(Long originalCourseId, Long newCourseId) {
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.EvaluationType> originalTypes = 
+            evaluationTypeRepository.findByCourseId(originalCourseId);
+        
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.EvaluationType> newTypes = originalTypes.stream()
+            .map(original -> {
+                com.gestion.docente.backend.Gestion.Docente.Backend.model.EvaluationType newType = 
+                    new com.gestion.docente.backend.Gestion.Docente.Backend.model.EvaluationType();
+                newType.setNombre(original.getNombre());
+                newType.setCourseId(newCourseId);
+                return newType;
+            })
+            .collect(Collectors.toList());
+        
+        evaluationTypeRepository.saveAll(newTypes);
+    }
+    
+    private void copyEvaluations(Long originalCourseId, Long newCourseId) {
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation> originalEvaluations = 
+            evaluationRepository.findByCourseId(originalCourseId);
+        
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation> newEvaluations = originalEvaluations.stream()
+            .map(original -> {
+                com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation newEval = 
+                    new com.gestion.docente.backend.Gestion.Docente.Backend.model.Evaluation();
+                newEval.setNombre(original.getNombre());
+                newEval.setDate(original.getDate());
+                newEval.setTipo(original.getTipo());
+                newEval.setEvaluationTypeId(null); // No copiar relación, se puede reasignar después
+                newEval.setGradeScaleId(original.getGradeScaleId()); // Copiar escala si existe
+                newEval.setCourseId(newCourseId);
+                newEval.setGradesSentByEmail(false);
+                newEval.setCustomMessage(null);
+                return newEval;
+            })
+            .collect(Collectors.toList());
+        
+        evaluationRepository.saveAll(newEvaluations);
+    }
+    
+    private void copySchedules(Long originalCourseId, Long newCourseId) {
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.CourseSchedule> originalSchedules = 
+            courseScheduleRepository.findByCourseId(originalCourseId);
+        
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.CourseSchedule> newSchedules = originalSchedules.stream()
+            .map(original -> {
+                com.gestion.docente.backend.Gestion.Docente.Backend.model.CourseSchedule newSchedule = 
+                    new com.gestion.docente.backend.Gestion.Docente.Backend.model.CourseSchedule();
+                newSchedule.setCourseId(newCourseId);
+                newSchedule.setDayOfWeek(original.getDayOfWeek());
+                newSchedule.setStartTime(original.getStartTime());
+                newSchedule.setEndTime(original.getEndTime());
+                return newSchedule;
+            })
+            .collect(Collectors.toList());
+        
+        courseScheduleRepository.saveAll(newSchedules);
+    }
+    
     /**
      * Convierte una entidad Course a CourseDTO
      */
@@ -176,6 +391,10 @@ public class CourseServiceImpl implements CourseService {
         dto.setSchool(course.getSchool());
         dto.setDescription(course.getDescription());
         dto.setProfessorId(course.getProfessorId());
+        dto.setArchived(course.getArchived());
+        dto.setArchivedDate(course.getArchivedDate());
+        dto.setApprovalGrade(course.getApprovalGrade());
+        dto.setQualificationGrade(course.getQualificationGrade());
         return dto;
     }
     
@@ -189,6 +408,10 @@ public class CourseServiceImpl implements CourseService {
         course.setSchool(dto.getSchool());
         course.setDescription(dto.getDescription());
         course.setProfessorId(dto.getProfessorId());
+        course.setArchived(dto.getArchived() != null ? dto.getArchived() : false);
+        course.setArchivedDate(dto.getArchivedDate());
+        course.setApprovalGrade(dto.getApprovalGrade());
+        course.setQualificationGrade(dto.getQualificationGrade());
         return course;
     }
     
@@ -210,6 +433,58 @@ public class CourseServiceImpl implements CourseService {
         if (!course.getProfessorId().equals(currentProfessorId)) {
             throw new IllegalArgumentException("No tiene acceso a este curso");
         }
+    }
+    
+    @Override
+    public void sendPersonalizedMessageToAllStudents(Long courseId, com.gestion.docente.backend.Gestion.Docente.Backend.dto.SendPersonalizedMessageDTO messageDTO) {
+        // 1. Validar ownership: el curso debe pertenecer al profesor autenticado
+        validateCourseOwnership(courseId);
+        
+        // 2. Obtener el curso
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new IllegalArgumentException("El curso con ID " + courseId + " no existe"));
+        
+        // 3. Obtener información del profesor
+        com.gestion.docente.backend.Gestion.Docente.Backend.model.Professor professor = 
+            professorRepository.findById(course.getProfessorId())
+                .orElseThrow(() -> new IllegalArgumentException("El profesor no existe"));
+        String professorName = professor.getName() + 
+            (professor.getLastname() != null ? " " + professor.getLastname() : "");
+        String professorEmail = professor.getEmail();
+        
+        // 4. Obtener todos los estudiantes del curso
+        List<com.gestion.docente.backend.Gestion.Docente.Backend.model.Student> students = 
+            studentRepository.findByCourseId(courseId);
+        
+        // 5. Enviar email a cada estudiante
+        int emailsSent = 0;
+        int emailsFailed = 0;
+        
+        for (com.gestion.docente.backend.Gestion.Docente.Backend.model.Student student : students) {
+            if (student.getEmail() != null && !student.getEmail().trim().isEmpty()) {
+                try {
+                    String studentName = student.getFirstName() + 
+                            (student.getLastName() != null ? " " + student.getLastName() : "");
+                    emailService.sendPersonalizedMessageToAllStudents(
+                            student.getEmail(),
+                            studentName,
+                            course.getName(),
+                            messageDTO.getSubject(),
+                            messageDTO.getMessage(),
+                            professorName,
+                            professorEmail
+                    );
+                    emailsSent++;
+                } catch (Exception e) {
+                    System.err.println("Error al enviar email a " + student.getEmail() + ": " + e.getMessage());
+                    emailsFailed++;
+                }
+            } else {
+                emailsFailed++;
+            }
+        }
+        
+        System.out.println("Envío de mensajes personalizados completado. Enviados: " + emailsSent + ", Fallidos: " + emailsFailed);
     }
 }
 

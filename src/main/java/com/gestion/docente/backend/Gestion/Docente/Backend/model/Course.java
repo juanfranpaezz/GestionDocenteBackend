@@ -27,8 +27,20 @@ public class Course {
     
     private String description;
     
+    @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
+    private Boolean archived = false;
+    
+    @Column(nullable = true)
+    private java.time.LocalDateTime archivedDate;
+    
     @Column(nullable = false)
     private Long professorId;
+    
+    @Column(nullable = true)
+    private Double approvalGrade; // Nota mínima para aprobar (default del curso)
+    
+    @Column(nullable = true)
+    private Double qualificationGrade; // Nota mínima para habilitar (default del curso)
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "professorId", insertable = false, updatable = false)

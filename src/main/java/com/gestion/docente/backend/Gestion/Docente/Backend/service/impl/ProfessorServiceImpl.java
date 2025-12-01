@@ -69,7 +69,12 @@ public class ProfessorServiceImpl implements ProfessorService {
         
         // 4. Campos opcionales
         professor.setCel(registerRequest.getCel());
-        professor.setPhotoUrl(registerRequest.getPhotoUrl());
+        // Asignar imagen por defecto si no se proporciona una
+        if (registerRequest.getPhotoUrl() == null || registerRequest.getPhotoUrl().trim().isEmpty()) {
+            professor.setPhotoUrl("/assets/default-profile.svg");
+        } else {
+            professor.setPhotoUrl(registerRequest.getPhotoUrl());
+        }
         
         // 5. Generar token de verificación
         String verificationToken = generateVerificationToken();
@@ -420,7 +425,12 @@ public class ProfessorServiceImpl implements ProfessorService {
         dto.setLastname(professor.getLastname());
         dto.setEmail(professor.getEmail());
         dto.setCel(professor.getCel());
-        dto.setPhotoUrl(professor.getPhotoUrl());
+        // Asignar imagen por defecto si no tiene foto
+        if (professor.getPhotoUrl() == null || professor.getPhotoUrl().trim().isEmpty()) {
+            dto.setPhotoUrl("/assets/default-profile.svg");
+        } else {
+            dto.setPhotoUrl(professor.getPhotoUrl());
+        }
         dto.setRole(professor.getRole());
         // NO incluir password por seguridad
         return dto;

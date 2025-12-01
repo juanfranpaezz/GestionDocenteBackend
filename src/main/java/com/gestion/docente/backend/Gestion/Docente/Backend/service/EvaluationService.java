@@ -14,8 +14,14 @@ public interface EvaluationService {
     
     EvaluationDTO addEvaluation(EvaluationDTO evaluationDTO);
     
+    EvaluationDTO updateEvaluation(Long id, EvaluationDTO evaluationDTO);
+    
     void deleteEvaluation(Long id);
     
     void sendGradesByEmail(Long evaluationId);
+    
+    void sendGradesByEmailCustom(Long evaluationId, com.gestion.docente.backend.Gestion.Docente.Backend.dto.SendGradesCustomDTO sendDTO);
+    
+    EvaluationDTO updateEvaluationGradeScale(Long id, Long gradeScaleId);
 }
 

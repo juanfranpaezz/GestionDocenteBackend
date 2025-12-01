@@ -13,5 +13,7 @@ public interface StudentService {
     StudentDTO updateStudent(Long id, StudentDTO studentDTO);
     
     void removeStudent(Long id);
+    
+    List<StudentDTO> importStudents(Long courseId, List<StudentDTO> students);
 }
 

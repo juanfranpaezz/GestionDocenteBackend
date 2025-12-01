@@ -5,5 +5,7 @@ import org.springframework.core.io.ByteArrayResource;
 public interface ExcelService {
     
     ByteArrayResource generateGradesExcel(Long courseId);
+    
+    String generateGradesFileName(Long courseId);
 }
 
