@@ -26,7 +26,6 @@ public class Student {
     
     private String cel;
     
-    @Column(nullable = false)
     private String email;
     
     private String document;
