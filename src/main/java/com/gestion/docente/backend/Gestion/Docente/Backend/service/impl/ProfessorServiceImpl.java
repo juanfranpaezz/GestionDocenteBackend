@@ -12,10 +12,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.CreateProfessorByAdminRequest;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.LoginResponse;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.ProfessorDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.RegisterRequest;
 import com.gestion.docente.backend.Gestion.Docente.Backend.model.Professor;
+import com.gestion.docente.backend.Gestion.Docente.Backend.model.Role;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.CourseRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.repository.ProfessorRepository;
 import com.gestion.docente.backend.Gestion.Docente.Backend.security.ProfessorPrincipal;
@@ -112,6 +114,63 @@ public class ProfessorServiceImpl implements ProfessorService {
     }
     
     @Override
+    public ProfessorDTO createByAdmin(CreateProfessorByAdminRequest request) {
+        // 1. Validar que solo admins puedan crear profesores/admins
+        validateAdminAccess();
+        
+        // 2. Validar que solo se puedan crear ADMINS (seguridad)
+        // Los profesores deben auto-registrarse con verificación de email
+        if (request.getRole() != Role.ADMIN) {
+            throw new IllegalArgumentException("Solo se pueden crear administradores desde esta funcionalidad. " +
+                "Los profesores deben registrarse por su cuenta con verificación de email.");
+        }
+        
+        // 3. Validar que el email no exista
+        if (professorRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("El email " + request.getEmail() + " ya está registrado");
+        }
+        
+        // 4. Crear nueva entidad Professor
+        Professor professor = new Professor();
+        professor.setName(request.getName());
+        professor.setLastname(request.getLastname());
+        professor.setEmail(request.getEmail());
+        
+        // 5. Encriptar contraseña con BCrypt
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+        professor.setPassword(encodedPassword);
+        
+        // 6. Campos opcionales
+        professor.setCel(request.getCel());
+        
+        // Asignar imagen por defecto si no se proporciona una
+        if (request.getPhotoUrl() == null || request.getPhotoUrl().trim().isEmpty()) {
+            professor.setPhotoUrl("/assets/default-profile.svg");
+        } else {
+            professor.setPhotoUrl(request.getPhotoUrl());
+        }
+        
+        // 7. Asignar rol (siempre ADMIN por validación)
+        professor.setRole(Role.ADMIN);
+        
+        // 8. IMPORTANTE: Usuario creado por admin está verificado automáticamente
+        professor.setEmailVerified(true); // Ya verificado
+        professor.setVerificationToken(null); // No necesita token
+        professor.setTokenExpiryDate(null); // No hay expiración
+        
+        // 9. Guardar en la base de datos
+        Professor savedProfessor = professorRepository.save(professor);
+        
+        // 10. NO enviar email de verificación (creado por admin)
+        System.out.println("✓ Administrador creado por administrador: " + savedProfessor.getEmail());
+        System.out.println("✓ Email verificado automáticamente: true");
+        System.out.println("✓ Rol asignado: " + savedProfessor.getRole());
+        
+        // 11. Convertir a DTO (sin password) y retornar
+        return convertToDTO(savedProfessor);
+    }
+    
+    @Override
     public LoginResponse login(String email, String password) {
         try {
             System.out.println("=== LOGIN ATTEMPT ===");
@@ -198,8 +257,13 @@ public class ProfessorServiceImpl implements ProfessorService {
         // 2. Obtener el profesor autenticado
         Long currentProfessorId = SecurityUtils.getCurrentProfessorId();
         
-        // 3. Validar permisos:
-        //    - Si es administrador, puede actualizar cualquier profesor
+        // 3. SEGURIDAD: Los admins no pueden editar a otros admins
+        if (existingProfessor.getRole() == Role.ADMIN && !existingProfessor.getId().equals(currentProfessorId)) {
+            throw new IllegalStateException("No se puede editar a otro administrador. Los administradores solo pueden editar su propio perfil.");
+        }
+        
+        // 4. Validar permisos:
+        //    - Si es administrador, puede actualizar cualquier PROFESOR (no admin)
         //    - Si no es administrador, solo puede actualizar su propio perfil
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         boolean isAdmin = authentication.getAuthorities().stream()
@@ -209,7 +273,7 @@ public class ProfessorServiceImpl implements ProfessorService {
             throw new IllegalStateException("Solo puedes actualizar tu propio perfil");
         }
         
-        // 4. Actualizar los campos permitidos
+        // 5. Actualizar los campos permitidos
         if (professorDTO.getName() != null) {
             existingProfessor.setName(professorDTO.getName());
         }
@@ -307,6 +371,11 @@ public class ProfessorServiceImpl implements ProfessorService {
         
         Professor professor = professorRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("El profesor con ID " + id + " no existe"));
+        
+        // SEGURIDAD: No se pueden eliminar administradores
+        if (professor.getRole() == Role.ADMIN) {
+            throw new IllegalStateException("No se puede eliminar a un administrador. Los administradores no pueden ser eliminados del sistema.");
+        }
         
         // Verificar si el profesor tiene cursos asociados
         List<com.gestion.docente.backend.Gestion.Docente.Backend.model.Course> courses = courseRepository.findByProfessorId(id);

@@ -1,7 +1,9 @@
 package com.gestion.docente.backend.Gestion.Docente.Backend.controller;
 
+import com.gestion.docente.backend.Gestion.Docente.Backend.dto.CreateProfessorByAdminRequest;
 import com.gestion.docente.backend.Gestion.Docente.Backend.dto.ProfessorDTO;
 import com.gestion.docente.backend.Gestion.Docente.Backend.service.ProfessorService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,34 @@ public class ProfessorController {
     
     @Autowired
     private ProfessorService professorService;
+    
+    /**
+     * POST /api/professors
+     * Crea un nuevo administrador (solo admins).
+     * No envía email de verificación, el usuario queda verificado automáticamente.
+     * 
+     * IMPORTANTE: Solo se pueden crear ADMINS desde este endpoint por seguridad.
+     * Los profesores deben auto-registrarse en /api/auth/register con verificación de email.
+     */
+    @PostMapping
+    public ResponseEntity<?> createProfessor(@Valid @RequestBody CreateProfessorByAdminRequest request) {
+        try {
+            ProfessorDTO createdProfessor = professorService.createByAdmin(request);
+            return ResponseEntity.status(HttpStatus.CREATED).body(createdProfessor);
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+        } catch (IllegalStateException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error al crear el profesor: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
     
     @GetMapping
     public ResponseEntity<List<ProfessorDTO>> getAllProfessors() {

@@ -15,5 +15,9 @@ public class DuplicateCourseDTO {
     private Boolean copyEvaluations = false; // Por defecto false (sin notas)
     
     private Boolean copySchedules = true;
+    
+    private Boolean copySubjects = true; // Copiar materias por defecto
+    
+    private Boolean copyGrades = false; // No copiar notas por defecto (solo si se copian evaluaciones)
 }
 

@@ -22,7 +22,7 @@ public class StudentDTO {
     @Pattern(regexp = "^[0-9]{10,15}$|^$", message = "El celular debe contener entre 10 y 15 dígitos numéricos")
     private String cel;
     
-    @Email(message = "El email debe tener un formato válido")
+    @Email(message = "El email debe tener un formato válido (si se proporciona)")
     private String email;
     
     @Size(max = 20, message = "El documento no puede tener más de 20 caracteres")
